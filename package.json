@@ -1,0 +1,22 @@
+{
+  "name": "micro-job-marketplace-il",
+  "version": "0.1.0",
+  "description": "Israeli-market freelance AI agent skill pack for Claude Code",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test src/**/*.test.js"
+  },
+  "keywords": [
+    "claude-code",
+    "freelance",
+    "israel",
+    "hebrew",
+    "fiverr",
+    "xplace",
+    "vat"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "stripe": "^14.0.0"
+  }
+}

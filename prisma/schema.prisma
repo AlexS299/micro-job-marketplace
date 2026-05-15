@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id              String   @id @default(cuid())
+  name            String
+  vatNumber       String?
+  businessNumber  String?
+  address         String?
+  city            String?
+  phone           String?
+  email           String?
+  bankAccount     String?
+  bankName        String?
+  taxType         String   @default("OSEK_MURSHEH")
+  vatReportPeriod String   @default("BIMONTHLY")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  clients         Client[]
+  invoices        Invoice[]
+  bankAccounts    BankAccount[]
+  vatReports      VATReport[]
+}
+
+model Client {
+  id             String    @id @default(cuid())
+  businessId     String
+  business       Business  @relation(fields: [businessId], references: [id])
+  name           String
+  vatNumber      String?
+  idNumber       String?
+  address        String?
+  city           String?
+  email          String?
+  phone          String?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  invoices       Invoice[]
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  businessId      String
+  business        Business      @relation(fields: [businessId], references: [id])
+  clientId        String?
+  client          Client?       @relation(fields: [clientId], references: [id])
+  invoiceNumber   String        @unique
+  type            String        @default("TAX_INVOICE")
+  status          String        @default("DRAFT")
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime?
+  currency        String        @default("ILS")
+  subtotal        Float         @default(0)
+  vatAmount       Float         @default(0)
+  vatRate         Float         @default(0.18)
+  total           Float         @default(0)
+  notes           String?
+  pdfUrl          String?
+  emailSentAt     DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  items           InvoiceItem[]
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float    @default(1)
+  unitPrice   Float
+  total       Float
+  vatIncluded Boolean  @default(false)
+}
+
+model BankAccount {
+  id            String             @id @default(cuid())
+  businessId    String
+  business      Business           @relation(fields: [businessId], references: [id])
+  bankName      String
+  accountNumber String
+  branchNumber  String?
+  currency      String             @default("ILS")
+  balance       Float              @default(0)
+  lastSyncAt    DateTime?
+  createdAt     DateTime           @default(now())
+  transactions  BankTransaction[]
+}
+
+model BankTransaction {
+  id              String      @id @default(cuid())
+  bankAccountId   String
+  bankAccount     BankAccount @relation(fields: [bankAccountId], references: [id])
+  date            DateTime
+  description     String
+  amount          Float
+  balance         Float?
+  category        String?
+  reference       String?
+  invoiceId       String?
+  isReconciled    Boolean     @default(false)
+  notes           String?
+  createdAt       DateTime    @default(now())
+}
+
+model VATReport {
+  id            String   @id @default(cuid())
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id])
+  periodStart   DateTime
+  periodEnd     DateTime
+  outputVAT     Float
+  inputVAT      Float
+  vatOwed       Float
+  status        String   @default("DRAFT")
+  submittedAt   DateTime?
+  reportData    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ChatMessage {
+  id         String   @id @default(cuid())
+  role       String
+  content    String
+  toolUse    String?
+  createdAt  DateTime @default(now())
+}

@@ -197,6 +197,26 @@ export const AI_TOOLS: Anthropic.Tool[] = [
       required: ['question'],
     },
   },
+  {
+    name: 'list_expenses',
+    description: 'רשימת הוצאות שנסרקו, עם סיכום מע"מ תשומות לניכוי',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        category: {
+          type: 'string',
+          description: 'סנן לפי קטגוריה: OFFICE, TRAVEL, MEALS, PROFESSIONAL, MARKETING, RENT, UTILITIES, INSURANCE, SALARY, SOFTWARE, OTHER',
+        },
+        status: {
+          type: 'string',
+          enum: ['PENDING', 'APPROVED', 'REJECTED'],
+          description: 'סנן לפי סטטוס',
+        },
+        dateFrom: { type: 'string', description: 'מתאריך (ISO 8601)' },
+        dateTo: { type: 'string', description: 'עד תאריך (ISO 8601)' },
+      },
+    },
+  },
 ]
 
 // ─── Tool Executors ────────────────────────────────────────────────────────────
@@ -521,11 +541,50 @@ export async function executeTool(toolName: string, toolInput: Record<string, an
       }
 
       case 'get_tax_advice': {
-        // This is handled directly by Claude's knowledge — just return context
         return JSON.stringify({
           question: toolInput.question,
           note: 'ייעוץ זה הוא מידע כללי בלבד ואינו מהווה ייעוץ מקצועי. יש להתייעץ עם רואה חשבון מוסמך.',
           relevantLaw: 'חוק מע"מ תשל"ו-1975, פקודת מס הכנסה [נוסח חדש], תשכ"א-1961',
+        })
+      }
+
+      case 'list_expenses': {
+        const business = await getOrCreateBusiness()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const where: any = { businessId: business.id }
+        if (toolInput.category) where.category = toolInput.category
+        if (toolInput.status) where.status = toolInput.status
+        if (toolInput.dateFrom || toolInput.dateTo) {
+          where.date = {}
+          if (toolInput.dateFrom) where.date.gte = new Date(toolInput.dateFrom)
+          if (toolInput.dateTo) where.date.lte = new Date(toolInput.dateTo)
+        }
+        const expenses = await db.expense.findMany({
+          where,
+          orderBy: { date: 'desc' },
+          take: 30,
+        })
+        const totalAmount = expenses.reduce((s, e) => s + e.total, 0)
+        const vatDeductible = expenses.reduce(
+          (s, e) => s + (e.vatDeductible ? e.vatAmount * (e.vatDeductiblePercent / 100) : 0),
+          0
+        )
+        return JSON.stringify({
+          count: expenses.length,
+          totalAmount: Math.round(totalAmount * 100) / 100,
+          vatDeductible: Math.round(vatDeductible * 100) / 100,
+          expenses: expenses.map(e => ({
+            id: e.id,
+            vendor: e.vendor,
+            date: e.date,
+            total: e.total,
+            vatAmount: e.vatAmount,
+            category: e.category,
+            status: e.status,
+            vatDeductible: e.vatDeductible,
+            vatDeductiblePercent: e.vatDeductiblePercent,
+          })),
+          summary: `${expenses.length} הוצאות | סה"כ: ₪${totalAmount.toFixed(2)} | מע"מ תשומות לניכוי: ₪${vatDeductible.toFixed(2)}`,
         })
       }
 

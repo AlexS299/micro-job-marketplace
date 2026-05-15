@@ -26,6 +26,31 @@ model Business {
   invoices        Invoice[]
   bankAccounts    BankAccount[]
   vatReports      VATReport[]
+  expenses        Expense[]
+}
+
+model Expense {
+  id                   String   @id @default(cuid())
+  businessId           String
+  business             Business @relation(fields: [businessId], references: [id])
+  vendor               String?
+  description          String?
+  date                 DateTime
+  subtotal             Float    @default(0)
+  vatAmount            Float    @default(0)
+  total                Float    @default(0)
+  category             String   @default("OTHER")
+  receiptNumber        String?
+  vatDeductible        Boolean  @default(true)
+  vatDeductiblePercent Float    @default(100)
+  documentPath         String?
+  rawExtraction        String?
+  confidence           Float?
+  status               String   @default("PENDING")
+  bankTransactionId    String?
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model Client {

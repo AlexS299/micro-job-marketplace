@@ -11,12 +11,14 @@ import {
   Building2,
   BarChart3,
   Sparkles,
+  ScanLine,
 } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'בית', icon: LayoutDashboard },
   { href: '/dashboard/chat', label: "צ'אט AI", icon: MessageSquare },
   { href: '/dashboard/invoices', label: 'חשבוניות', icon: FileText },
+  { href: '/dashboard/expenses', label: 'הוצאות', icon: ScanLine },
   { href: '/dashboard/clients', label: 'לקוחות', icon: Users },
   { href: '/dashboard/bank', label: 'בנק', icon: Building2 },
   { href: '/dashboard/reports', label: 'דוחות', icon: BarChart3 },

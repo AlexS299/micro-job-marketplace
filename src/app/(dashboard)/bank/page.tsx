@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { clsx } from 'clsx'
 import {
   Building2,
@@ -11,6 +11,9 @@ import {
   CheckCircle,
   Circle,
   Download,
+  Upload,
+  X,
+  AlertCircle,
 } from 'lucide-react'
 import { formatILS, formatDate } from '@/lib/vat'
 
@@ -86,6 +89,9 @@ export default function BankPage() {
   const [loading, setLoading] = useState(true)
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('ALL')
   const [importing, setImporting] = useState(false)
+  const [csvImporting, setCsvImporting] = useState(false)
+  const [csvResult, setCsvResult] = useState<{ message: string; success: boolean } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -124,6 +130,26 @@ export default function BankPage() {
     }
   }
 
+  const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCsvImporting(true)
+    setCsvResult(null)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/bank/import-csv', { method: 'POST', body: formData })
+      const json = await res.json()
+      setCsvResult({ message: json.message || json.error || 'שגיאה', success: res.ok })
+      if (res.ok) fetchData()
+    } catch {
+      setCsvResult({ message: 'שגיאת רשת', success: false })
+    }
+    setCsvImporting(false)
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   const filtered = data?.transactions.filter((tx) => {
     if (categoryFilter === 'ALL') return true
     return tx.category === categoryFilter
@@ -144,13 +170,32 @@ export default function BankPage() {
             </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={fetchData}
             className="p-2.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
+          {/* CSV import */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleCsvImport}
+            className="hidden"
+            id="csv-upload"
+          />
+          <label
+            htmlFor="csv-upload"
+            className={clsx(
+              'flex items-center gap-2 bg-green-600 text-white text-sm font-medium px-4 py-2.5 rounded-lg hover:bg-green-700 transition-colors cursor-pointer',
+              csvImporting && 'opacity-50 pointer-events-none'
+            )}
+          >
+            {csvImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            ייבוא CSV
+          </label>
           <button
             onClick={handleImportDemo}
             disabled={importing}
@@ -161,6 +206,23 @@ export default function BankPage() {
           </button>
         </div>
       </div>
+
+      {/* CSV import result */}
+      {csvResult && (
+        <div className={clsx(
+          'flex items-center gap-2 px-4 py-3 rounded-xl text-sm',
+          csvResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+        )}>
+          {csvResult.success
+            ? <CheckCircle className="w-4 h-4 flex-shrink-0" />
+            : <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          }
+          <span>{csvResult.message}</span>
+          <button onClick={() => setCsvResult(null)} className="mr-auto">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Account cards */}
       {data?.accounts && data.accounts.length > 0 && (

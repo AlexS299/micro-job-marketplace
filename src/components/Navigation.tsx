@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 import { clsx } from 'clsx'
 import {
   LayoutDashboard,
@@ -12,6 +13,9 @@ import {
   BarChart3,
   Sparkles,
   ScanLine,
+  Settings,
+  LogOut,
+  RefreshCw,
 } from 'lucide-react'
 
 const navItems = [
@@ -22,10 +26,12 @@ const navItems = [
   { href: '/dashboard/clients', label: 'לקוחות', icon: Users },
   { href: '/dashboard/bank', label: 'בנק', icon: Building2 },
   { href: '/dashboard/reports', label: 'דוחות', icon: BarChart3 },
+  { href: '/dashboard/settings', label: 'הגדרות', icon: Settings },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
 
   return (
     <aside className="hidden md:flex flex-col w-64 bg-white border-l border-slate-200 shadow-sm fixed right-0 top-0 h-full z-30">
@@ -68,9 +74,26 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Bottom info */}
-      <div className="px-6 py-4 border-t border-slate-100">
-        <p className="text-xs text-slate-400 text-center">
+      {/* Bottom section */}
+      <div className="px-3 py-3 border-t border-slate-100 space-y-2">
+        {session?.user && (
+          <div className="px-4 py-2 rounded-lg bg-slate-50">
+            <p className="text-xs font-medium text-slate-700 truncate">
+              {session.user.name || session.user.email}
+            </p>
+            {session.user.name && (
+              <p className="text-xs text-slate-400 truncate">{session.user.email}</p>
+            )}
+          </div>
+        )}
+        <button
+          onClick={() => signOut({ callbackUrl: '/login' })}
+          className="flex items-center gap-3 w-full px-4 py-2.5 rounded-lg transition-colors text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-700 group"
+        >
+          <LogOut className="w-5 h-5 text-slate-400 group-hover:text-red-600" />
+          <span>יציאה</span>
+        </button>
+        <p className="text-xs text-slate-400 text-center px-2">
           מע&quot;מ 18% | חוק מע&quot;מ תשל&quot;ו
         </p>
       </div>
@@ -81,10 +104,14 @@ export function Sidebar() {
 export function BottomNav() {
   const pathname = usePathname()
 
+  const mobileNavItems = navItems.filter(item =>
+    item.href !== '/dashboard/settings'
+  )
+
   return (
     <nav className="md:hidden fixed bottom-0 right-0 left-0 bg-white border-t border-slate-200 z-30">
       <div className="flex">
-        {navItems.map((item) => {
+        {mobileNavItems.map((item) => {
           const isActive = pathname === item.href ||
             (item.href !== '/dashboard' && pathname.startsWith(item.href))
           const Icon = item.icon
@@ -103,6 +130,13 @@ export function BottomNav() {
             </Link>
           )
         })}
+        <button
+          onClick={() => signOut({ callbackUrl: '/login' })}
+          className="flex-1 flex flex-col items-center gap-1 py-2 text-xs text-slate-500"
+        >
+          <RefreshCw className="w-5 h-5" />
+          <span className="text-[10px] font-medium">יציאה</span>
+        </button>
       </div>
     </nav>
   )

@@ -137,3 +137,88 @@ export async function sendInvoiceEmail(
     attachments,
   })
 }
+
+export async function sendReminderEmail(
+  invoice: EmailInvoice,
+  business: EmailBusiness,
+  client: EmailClient
+): Promise<void> {
+  const transporter = createTransporter()
+  const subject = `תזכורת תשלום — חשבונית ${invoice.invoiceNumber} מאת ${business.name}`
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; direction: rtl; background: #f8fafc; margin: 0; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .header { background: #dc2626; color: white; padding: 24px; text-align: center; }
+    .header h1 { margin: 0; font-size: 22px; }
+    .content { padding: 24px; }
+    .invoice-details { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 16px 0; }
+    .row { display: flex; justify-content: space-between; margin: 8px 0; }
+    .label { color: #64748b; font-size: 14px; }
+    .value { font-weight: 600; }
+    .total-row { border-top: 2px solid #dc2626; margin-top: 12px; padding-top: 12px; }
+    .total-row .value { color: #dc2626; font-size: 18px; }
+    .footer { background: #f8fafc; padding: 16px; text-align: center; color: #64748b; font-size: 12px; border-top: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>תזכורת תשלום</h1>
+      <p style="margin: 4px 0; opacity: 0.9;">חשבונית ${invoice.invoiceNumber} — בפיגור תשלום</p>
+    </div>
+    <div class="content">
+      <p>שלום ${client.name},</p>
+      <p>ברצוננו להזכיר כי החשבונית הבאה טרם שולמה ועברה את תאריך הפירעון:</p>
+
+      <div class="invoice-details">
+        <div class="row">
+          <span class="label">מספר חשבונית:</span>
+          <span class="value">${invoice.invoiceNumber}</span>
+        </div>
+        ${invoice.dueDate ? `
+        <div class="row">
+          <span class="label">תאריך פירעון שחלף:</span>
+          <span class="value" style="color: #dc2626;">${formatDate(invoice.dueDate)}</span>
+        </div>
+        ` : ''}
+        <div class="row">
+          <span class="label">סכום לפני מע"מ:</span>
+          <span class="value">${formatILS(invoice.subtotal)}</span>
+        </div>
+        <div class="row">
+          <span class="label">מע"מ (18%):</span>
+          <span class="value">${formatILS(invoice.vatAmount)}</span>
+        </div>
+        <div class="row total-row">
+          <span class="label" style="font-weight: 700;">סה"כ לתשלום:</span>
+          <span class="value">${formatILS(invoice.total)}</span>
+        </div>
+      </div>
+
+      <p>אנא בצע את התשלום בהקדם האפשרי.</p>
+      <p>לפרטים נוספים, ניתן לפנות אלינו:</p>
+      ${business.phone ? `<p>טלפון: ${business.phone}</p>` : ''}
+      ${business.email ? `<p>אימייל: ${business.email}</p>` : ''}
+    </div>
+    <div class="footer">
+      <p>${business.name} | ${business.address || ''}</p>
+      <p>חשבונית זו הופקה בהתאם לחוק מע"מ תשל"ו-1975</p>
+    </div>
+  </div>
+</body>
+</html>
+  `
+
+  await transporter.sendMail({
+    from: `"${business.name}" <${process.env.EMAIL_FROM || process.env.SMTP_USER}>`,
+    to: client.email || '',
+    subject,
+    html: htmlBody,
+  })
+}

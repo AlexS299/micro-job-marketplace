@@ -8,25 +8,26 @@ datasource db {
 }
 
 model Business {
-  id              String   @id @default(cuid())
-  name            String
-  vatNumber       String?
-  businessNumber  String?
-  address         String?
-  city            String?
-  phone           String?
-  email           String?
-  bankAccount     String?
-  bankName        String?
-  taxType         String   @default("OSEK_MURSHEH")
-  vatReportPeriod String   @default("BIMONTHLY")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  clients         Client[]
-  invoices        Invoice[]
-  bankAccounts    BankAccount[]
-  vatReports      VATReport[]
-  expenses        Expense[]
+  id                String             @id @default(cuid())
+  name              String
+  vatNumber         String?
+  businessNumber    String?
+  address           String?
+  city              String?
+  phone             String?
+  email             String?
+  bankAccount       String?
+  bankName          String?
+  taxType           String             @default("OSEK_MURSHEH")
+  vatReportPeriod   String             @default("BIMONTHLY")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  clients           Client[]
+  invoices          Invoice[]
+  bankAccounts      BankAccount[]
+  vatReports        VATReport[]
+  expenses          Expense[]
+  recurringInvoices RecurringInvoice[]
 }
 
 model Expense {
@@ -54,20 +55,21 @@ model Expense {
 }
 
 model Client {
-  id             String    @id @default(cuid())
-  businessId     String
-  business       Business  @relation(fields: [businessId], references: [id])
-  name           String
-  vatNumber      String?
-  idNumber       String?
-  address        String?
-  city           String?
-  email          String?
-  phone          String?
-  notes          String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  invoices       Invoice[]
+  id                String             @id @default(cuid())
+  businessId        String
+  business          Business           @relation(fields: [businessId], references: [id])
+  name              String
+  vatNumber         String?
+  idNumber          String?
+  address           String?
+  city              String?
+  email             String?
+  phone             String?
+  notes             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  invoices          Invoice[]
+  recurringInvoices RecurringInvoice[]
 }
 
 model Invoice {
@@ -158,4 +160,32 @@ model ChatMessage {
   content    String
   toolUse    String?
   createdAt  DateTime @default(now())
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  name       String?
+  businessId String?
+  createdAt  DateTime @default(now())
+}
+
+model RecurringInvoice {
+  id            String    @id @default(cuid())
+  businessId    String
+  business      Business  @relation(fields: [businessId], references: [id])
+  clientId      String?
+  client        Client?   @relation(fields: [clientId], references: [id])
+  description   String
+  items         String
+  frequency     String    @default("MONTHLY")
+  dayOfMonth    Int       @default(1)
+  nextRunDate   DateTime
+  isActive      Boolean   @default(true)
+  lastRunAt     DateTime?
+  emailReminder Boolean   @default(true)
+  reminderDays  Int       @default(7)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }

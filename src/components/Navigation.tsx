@@ -19,10 +19,12 @@ import {
   Briefcase,
   Landmark,
   TrendingUp,
+  Bell,
 } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'בית', icon: LayoutDashboard },
+  { href: '/dashboard/alerts', label: 'התראות', icon: Bell },
   { href: '/dashboard/chat', label: "צ'אט AI", icon: MessageSquare },
   { href: '/dashboard/invoices', label: 'חשבוניות', icon: FileText },
   { href: '/dashboard/expenses', label: 'הוצאות', icon: ScanLine },

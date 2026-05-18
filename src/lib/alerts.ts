@@ -337,6 +337,50 @@ export async function generateAlerts(db: DB): Promise<Alert[]> {
     })
   }
 
+  // ── 12. Allocation number (חשבונית ישראל) — large invoices ────────────────
+  // Alert if there are recently-issued invoices above ₪20K (2025 threshold)
+  // without an allocation number (reference stored in notes for now)
+  const allocationThreshold = 20000 // ₪20K in 2025, drops to ₪10K Jan 2026, ₪5K Jun 2026
+  const largeInvoicesNoAllocation = invoices.filter(i => {
+    const isRecent = (now.getTime() - new Date(i.issueDate).getTime()) / 86400000 < 90
+    const isLarge  = i.subtotal >= allocationThreshold
+    const hasNote  = (i.notes ?? '').includes('הקצאה')
+    return isRecent && isLarge && i.status !== 'CANCELLED' && i.status !== 'DRAFT' && !hasNote
+  })
+  if (largeInvoicesNoAllocation.length > 0) {
+    alerts.push({
+      id: 'allocation-number-missing',
+      severity: 'warning',
+      category: 'tax',
+      title: `${largeInvoicesNoAllocation.length} חשבוניות מעל ₪${allocationThreshold.toLocaleString()} — בדוק מספר הקצאה`,
+      message: `מינואר 2025: חשבוניות מעל ₪${allocationThreshold.toLocaleString()} ללא מע"מ חייבות במספר הקצאה מרשות המסים. ללא מספר הקצאה — הלקוח לא יוכל לנכות מס תשומות.`,
+      detail: `מינואר 2026 הסף יורד ל-₪10,000, ויוני 2026 — ₪5,000.`,
+      actionLabel: 'קבל מספר הקצאה',
+      actionHref: '/dashboard/invoices',
+      data: { count: largeInvoicesNoAllocation.length, threshold: allocationThreshold },
+      createdAt: now,
+    })
+  }
+
+  // ── 13. Approaching ₪500K turnover → detailed PCN required from Jan 2026 ──
+  if (yearRevenue >= 400000 && yearRevenue < 600000 && now.getMonth() >= 8) {
+    const onTrack = Math.round((yearRevenue / (now.getMonth() + 1)) * 12)
+    if (onTrack >= 500000) {
+      alerts.push({
+        id: 'pcn-detailed-reporting',
+        severity: 'info',
+        category: 'tax',
+        title: `בדרך למחזור ₪500K — PCN מפורט מינואר 2026`,
+        message: `לפי הקצב, מחזורך השנתי יהיה ~${fmt(onTrack)}. מינואר 2026, עסקים מעל ₪500K חייבים בדיווח PCN מפורט — כל חשבונית שהוצאת ושקיבלת.`,
+        amount: onTrack,
+        actionLabel: 'ייעוץ מהAI',
+        actionHref: '/dashboard/chat',
+        data: { projectedRevenue: onTrack },
+        createdAt: now,
+      })
+    }
+  }
+
   // Sort: critical → warning → opportunity → info
   const order: AlertSeverity[] = ['critical', 'warning', 'opportunity', 'info']
   return alerts.sort((a, b) => order.indexOf(a.severity) - order.indexOf(b.severity))

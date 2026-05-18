@@ -2,20 +2,21 @@
 // Sources: רשות המיסים, המוסד לביטוח לאומי, משרד העבודה
 
 // ─── מדרגות מס הכנסה 2025 ─────────────────────────────────────────────────────
+// מדרגות מס הכנסה 2025 — הוקפאו לשנים 2025–2027 (מקור: רשות המסים, ינואר 2025)
 const TAX_BRACKETS = [
   { max: 7010,     rate: 0.10 },
   { max: 10060,    rate: 0.14 },
   { max: 16150,    rate: 0.20 },
-  { max: 21240,    rate: 0.31 },
-  { max: 43370,    rate: 0.35 },
-  { max: 55890,    rate: 0.47 },
+  { max: 22440,    rate: 0.31 },
+  { max: 46690,    rate: 0.35 },
+  { max: 60130,    rate: 0.47 },
   { max: Infinity, rate: 0.50 },
 ]
 
 // ─── קבועים 2025 ──────────────────────────────────────────────────────────────
-export const TAX_CREDIT_POINT_VALUE   = 242      // ₪ לנקודת זיכוי לחודש
-export const NI_LOW_THRESHOLD         = 7522      // 60% מהשכר הממוצע
-export const NI_MONTHLY_CEILING       = 47465     // תקרת ביטוח לאומי חודשית
+export const TAX_CREDIT_POINT_VALUE   = 242      // ₪ לנקודת זיכוי לחודש (2025)
+export const NI_LOW_THRESHOLD         = 7522      // 60% מהשכר הממוצע (2025)
+export const NI_MONTHLY_CEILING       = 50695     // תקרת ביטוח לאומי חודשית (2025)
 export const PENSION_EMPLOYEE_RATE    = 0.06      // 6% עובד
 export const PENSION_EMPLOYER_RATE    = 0.065     // 6.5% מעסיק (תגמולים)
 export const SEVERANCE_EMPLOYER_RATE  = 0.0833    // 8.33% מעסיק (פיצויים)

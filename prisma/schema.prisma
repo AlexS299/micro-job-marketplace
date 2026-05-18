@@ -28,6 +28,8 @@ model Business {
   vatReports        VATReport[]
   expenses          Expense[]
   recurringInvoices RecurringInvoice[]
+  employees         Employee[]
+  payrollRuns       PayrollRun[]
 }
 
 model Expense {
@@ -160,6 +162,78 @@ model ChatMessage {
   content    String
   toolUse    String?
   createdAt  DateTime @default(now())
+}
+
+model Employee {
+  id                String           @id @default(cuid())
+  businessId        String
+  business          Business         @relation(fields: [businessId], references: [id])
+  firstName         String
+  lastName          String
+  idNumber          String
+  email             String?
+  phone             String?
+  address           String?
+  startDate         DateTime
+  endDate           DateTime?
+  jobTitle          String?
+  employeeType      String           @default("FULL_TIME")
+  grossSalary       Float
+  taxCreditPoints   Float            @default(2.25)
+  bankAccount       String?
+  bankBranch        String?
+  bankName          String?
+  includePension    Boolean          @default(true)
+  pensionFund       String?
+  includeKeren      Boolean          @default(false)
+  isActive          Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  payrolls          EmployeePayroll[]
+}
+
+model PayrollRun {
+  id                 String           @id @default(cuid())
+  businessId         String
+  business           Business         @relation(fields: [businessId], references: [id])
+  month              Int
+  year               Int
+  status             String           @default("DRAFT")
+  totalGross         Float            @default(0)
+  totalNet           Float            @default(0)
+  totalTax           Float            @default(0)
+  totalNI            Float            @default(0)
+  totalEmployerCost  Float            @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  employees          EmployeePayroll[]
+}
+
+model EmployeePayroll {
+  id                 String      @id @default(cuid())
+  payrollRunId       String
+  payrollRun         PayrollRun  @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  employeeId         String
+  employee           Employee    @relation(fields: [employeeId], references: [id])
+  grossSalary        Float
+  bonus              Float       @default(0)
+  incomeTax          Float       @default(0)
+  nationalInsEmp     Float       @default(0)
+  healthTaxEmp       Float       @default(0)
+  pensionEmp         Float       @default(0)
+  kerenEmp           Float       @default(0)
+  totalDeductions    Float       @default(0)
+  netSalary          Float       @default(0)
+  nationalInsEmployer Float      @default(0)
+  pensionEmployer    Float       @default(0)
+  severanceEmployer  Float       @default(0)
+  kerenEmployer      Float       @default(0)
+  totalEmployerCost  Float       @default(0)
+  workDays           Int         @default(22)
+  vacationDays       Float       @default(0)
+  sickDays           Float       @default(0)
+  notes              String?
+  createdAt          DateTime    @default(now())
 }
 
 model User {

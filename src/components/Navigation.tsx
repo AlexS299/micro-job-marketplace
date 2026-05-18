@@ -17,6 +17,7 @@ import {
   LogOut,
   RefreshCw,
   Briefcase,
+  Landmark,
 } from 'lucide-react'
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/dashboard/clients', label: 'לקוחות', icon: Users },
   { href: '/dashboard/bank', label: 'בנק', icon: Building2 },
   { href: '/dashboard/payroll', label: 'שכר', icon: Briefcase },
+  { href: '/dashboard/tax', label: 'מרכז מס', icon: Landmark },
   { href: '/dashboard/reports', label: 'דוחות', icon: BarChart3 },
   { href: '/dashboard/settings', label: 'הגדרות', icon: Settings },
 ]

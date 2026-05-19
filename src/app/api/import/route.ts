@@ -127,6 +127,9 @@ export async function POST(req: NextRequest) {
   const type = formData.get('type') as string | null
 
   if (!file) return NextResponse.json({ error: 'קובץ לא נמצא' }, { status: 400 })
+  if (file.size > 10 * 1024 * 1024) {
+    return NextResponse.json({ error: 'הקובץ גדול מדי (מקסימום 10MB)' }, { status: 400 })
+  }
   if (!['clients', 'expenses'].includes(type ?? '')) {
     return NextResponse.json({ error: 'סוג לא חוקי' }, { status: 400 })
   }

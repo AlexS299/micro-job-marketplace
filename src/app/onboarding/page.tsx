@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { Sparkles, Building2, Receipt, Globe, CheckCircle } from 'lucide-react'
 import { LOCALES, type Locale } from '@/lib/i18n'
 
@@ -17,6 +18,7 @@ type Step = 1 | 2 | 3
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const { update } = useSession()
   const [step, setStep]             = useState<Step>(1)
   const [businessName, setBusiness] = useState('')
   const [taxType, setTaxType]       = useState<TaxType>('OSEK_MURSHEH')
@@ -42,6 +44,7 @@ export default function OnboardingPage() {
       body: JSON.stringify({ businessName, taxType, vatNumber: vatNumber || null, locale }),
     })
     if (!res.ok) { setError('שגיאה בשמירת הפרטים'); setLoading(false); return }
+    await update() // refresh JWT so locale + onboardingDone are current
     router.push('/dashboard')
   }
 

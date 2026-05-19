@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Sparkles, Lock, Mail, User, AlertCircle } from 'lucide-react'
@@ -111,6 +112,13 @@ export default function LoginPage() {
               className="w-full bg-blue-700 text-white py-2.5 rounded-xl font-medium text-sm hover:bg-blue-800 disabled:opacity-50 transition-colors">
               {loading ? '...' : mode === 'register' ? 'יצירת חשבון' : 'כניסה'}
             </button>
+            {mode === 'login' && (
+              <div className="text-center">
+                <Link href="/forgot-password" className="text-xs text-slate-500 hover:text-blue-600 transition-colors">
+                  שכחת סיסמה?
+                </Link>
+              </div>
+            )}
           </form>
 
           {/* Google sign-in */}

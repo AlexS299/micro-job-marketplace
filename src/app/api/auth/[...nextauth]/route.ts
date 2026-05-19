@@ -70,7 +70,7 @@ export const authOptions: NextAuthOptions = {
       return true
     },
 
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       if (user) {
         token.id             = user.id
         token.businessId     = (user as { businessId?: string }).businessId
@@ -86,6 +86,19 @@ export const authOptions: NextAuthOptions = {
         })
         if (dbUser) {
           token.id             = dbUser.id
+          token.businessId     = dbUser.businessId
+          token.role           = dbUser.role
+          token.locale         = dbUser.locale
+          token.onboardingDone = dbUser.onboardingDone
+        }
+      }
+      // Re-read from DB when session is explicitly refreshed (e.g., after onboarding)
+      if (trigger === 'update' && token.id) {
+        const dbUser = await db.user.findUnique({
+          where: { id: token.id as string },
+          select: { businessId: true, role: true, locale: true, onboardingDone: true },
+        })
+        if (dbUser) {
           token.businessId     = dbUser.businessId
           token.role           = dbUser.role
           token.locale         = dbUser.locale

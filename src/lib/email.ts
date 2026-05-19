@@ -264,3 +264,36 @@ export async function sendInvitationEmail(params: {
     html,
   })
 }
+
+export async function sendPasswordResetEmail(params: {
+  toEmail: string
+  resetUrl: string
+}) {
+  const transporter = createTransporter()
+  const subject = 'איפוס סיסמה — מערכת הנה"ח'
+  const html = `
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head><meta charset="UTF-8" /><style>
+  body { font-family: Arial, sans-serif; background: #f8fafc; margin: 0; padding: 20px; }
+  .card { background: white; border-radius: 12px; padding: 32px; max-width: 480px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .btn { display: block; background: #1d4ed8; color: white; text-decoration: none; text-align: center; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; margin: 24px 0; }
+  .note { font-size: 12px; color: #94a3b8; margin-top: 20px; }
+</style></head>
+<body>
+<div class="card">
+  <h2 style="margin-top:0;">איפוס סיסמה</h2>
+  <p>קיבלנו בקשה לאיפוס הסיסמה שלך. לחץ על הכפתור למטה תוך שעה:</p>
+  <a href="${params.resetUrl}" class="btn">איפוס סיסמה</a>
+  <p class="note">אם לא ביקשת לאפס סיסמה — התעלם מאימייל זה. הסיסמה לא תשתנה.</p>
+  <p class="note">הקישור תקף לשעה אחת.</p>
+</div>
+</body></html>`
+
+  await transporter.sendMail({
+    from: `"מערכת הנה"ח" <${process.env.EMAIL_FROM || process.env.SMTP_USER}>`,
+    to: params.toEmail,
+    subject,
+    html,
+  })
+}

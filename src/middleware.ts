@@ -36,7 +36,7 @@ const WEBHOOK_PATHS = [
   '/api/payments/tranzila/webhook',
   '/api/payments/payme/webhook',
 ]
-const PUBLIC_PATHS  = ['/login', '/pricing', '/api/auth', '/pay/', '/quote/', '/api/quotes/respond/', '/invite/', '/portal/', '/api/portal/', '/onboarding']
+const PUBLIC_PATHS  = ['/login', '/pricing', '/api/auth', '/pay/', '/quote/', '/api/quotes/respond/', '/invite/', '/portal/', '/api/portal/', '/onboarding', '/forgot-password', '/reset-password']
 const ADMIN_PATHS   = ['/admin', '/api/admin']
 
 export default withAuth(
@@ -53,6 +53,8 @@ export default withAuth(
     if (pathname.startsWith('/api/tax/submit-vat'))      limitConfig = { limit: 10, windowMs: 3_600_000 }
     if (pathname.startsWith('/api/payroll/run'))         limitConfig = { limit: 20, windowMs: 60_000 }
     if (pathname.startsWith('/api/chat'))                limitConfig = { limit: 30, windowMs: 60_000 }
+    if (pathname.startsWith('/api/auth/forgot-password')) limitConfig = { limit: 5,  windowMs: 3_600_000 }
+    if (pathname.startsWith('/api/auth/reset-password'))  limitConfig = { limit: 10, windowMs: 3_600_000 }
 
     const segment = pathname.split('/').slice(0, 4).join('/')
     const { allowed, remaining, resetAt } = rateLimit(`${ip}:${segment}`, limitConfig)

@@ -3,23 +3,17 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { scanDocument } from '@/lib/document-scanner'
 import db from '@/lib/db'
+import { getAuthBusiness } from '@/lib/auth-context'
 
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'expenses')
 const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 
-async function getOrCreateBusiness() {
-  let business = await db.business.findFirst()
-  if (!business) {
-    business = await db.business.create({
-      data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' },
-    })
-  }
-  return business
-}
-
 export async function POST(request: NextRequest) {
   try {
+    const { business, error } = await getAuthBusiness()
+    if (error) return error
+
     if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true })
 
     const formData = await request.formData()
@@ -44,7 +38,6 @@ export async function POST(request: NextRequest) {
     const scanned = await scanDocument(filePath)
 
     // Save to DB
-    const business = await getOrCreateBusiness()
     const expense = await db.expense.create({
       data: {
         businessId: business.id,

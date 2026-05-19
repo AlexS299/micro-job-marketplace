@@ -2,16 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { formatPCN874, type VATReportData } from '@/lib/tax-authority'
 import { VAT_RATE } from '@/lib/vat'
-
-async function getBusiness() {
-  let b = await db.business.findFirst()
-  if (!b) b = await db.business.create({ data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' } })
-  return b
-}
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function POST(request: NextRequest) {
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
   const body = await request.json()
-  const business = await getBusiness()
 
   const periodStart = new Date(body.periodStart)
   const periodEnd   = new Date(body.periodEnd)

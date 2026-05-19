@@ -30,8 +30,8 @@ export async function GET(req: NextRequest) {
     const tokens = await exchangeCodeForToken(bankCode, code)
 
     // Ensure business exists
-    let business = await db.business.findUnique({ where: { id: businessId } })
-    if (!business) business = await db.business.findFirst() ?? await db.business.create({ data: { name: 'העסק שלי' } })
+    const business = await db.business.findUnique({ where: { id: businessId } })
+    if (!business) return NextResponse.redirect(`${origin}/dashboard/bank?error=business_not_found`)
 
     // Upsert connection
     const encAccessToken  = encrypt(tokens.accessToken)

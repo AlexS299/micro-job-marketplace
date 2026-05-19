@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
+import { getAuthBusiness } from '@/lib/auth-context'
 
 // Returns unreconciled income transactions that match open invoice amounts
 export async function GET() {
-  const business = await db.business.findFirst()
-  if (!business) return NextResponse.json([])
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
 
   const [transactions, invoices] = await Promise.all([
     db.bankTransaction.findMany({

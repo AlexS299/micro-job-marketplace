@@ -3,16 +3,16 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Sparkles, Lock, Mail, AlertCircle } from 'lucide-react'
+import { Sparkles, Lock, Mail, User, AlertCircle } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
+  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [setupMode, setSetupMode] = useState(false)
-  const [name, setName] = useState('')
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -27,21 +27,30 @@ export default function LoginPage() {
     setLoading(false)
   }
 
-  async function handleSetup(e: React.FormEvent) {
+  async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
+
     const res = await fetch('/api/auth/setup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, name }),
     })
-    const data = await res.json()
+    const data = await res.json() as { error?: string }
     if (!res.ok) {
-      setError(data.error)
+      setError(data.error ?? 'שגיאה ביצירת החשבון')
+      setLoading(false)
+      return
+    }
+
+    // Auto-sign-in and go to onboarding
+    const result = await signIn('credentials', { email, password, redirect: false })
+    if (result?.error) {
+      setError('החשבון נוצר — נסה להתחבר')
+      setMode('login')
     } else {
-      setSetupMode(false)
-      setError('')
+      router.push('/onboarding')
     }
     setLoading(false)
   }
@@ -49,7 +58,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-950 to-slate-900 flex items-center justify-center p-4" dir="rtl">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg">
             <Sparkles className="w-8 h-8 text-white" />
@@ -59,9 +67,21 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-6">
-          <h2 className="text-lg font-bold text-slate-900 mb-5 text-center">
-            {setupMode ? 'הגדרת חשבון ראשון' : 'כניסה למערכת'}
-          </h2>
+          {/* Tab toggle */}
+          <div className="flex gap-1 bg-slate-100 rounded-xl p-1 mb-5">
+            <button
+              onClick={() => { setMode('login'); setError('') }}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'login' ? 'bg-white shadow text-slate-900' : 'text-slate-500'}`}
+            >
+              כניסה
+            </button>
+            <button
+              onClick={() => { setMode('register'); setError('') }}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'register' ? 'bg-white shadow text-slate-900' : 'text-slate-500'}`}
+            >
+              הרשמה
+            </button>
+          </div>
 
           {error && (
             <div className="flex items-center gap-2 bg-red-50 text-red-700 px-3 py-2.5 rounded-xl mb-4 text-sm">
@@ -70,19 +90,23 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={setupMode ? handleSetup : handleLogin} className="space-y-4">
-            {setupMode && (
+          <form onSubmit={mode === 'register' ? handleRegister : handleLogin} className="space-y-4">
+            {mode === 'register' && (
               <div>
                 <label className="text-xs font-medium text-slate-600 mb-1 block">שם מלא</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="ישראל ישראלי"
-                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <div className="relative">
+                  <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="ישראל ישראלי"
+                    className="w-full border border-slate-200 rounded-xl pr-10 pl-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
             )}
+
             <div>
               <label className="text-xs font-medium text-slate-600 mb-1 block">דואר אלקטרוני</label>
               <div className="relative">
@@ -94,11 +118,13 @@ export default function LoginPage() {
                   required
                   placeholder="you@business.co.il"
                   className="w-full border border-slate-200 rounded-xl pr-10 pl-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{ direction: 'ltr', textAlign: 'right' }}
                 />
               </div>
             </div>
+
             <div>
-              <label className="text-xs font-medium text-slate-600 mb-1 block">סיסמה</label>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">סיסמה{mode === 'register' && ' (מינימום 8 תווים)'}</label>
               <div className="relative">
                 <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
@@ -106,26 +132,21 @@ export default function LoginPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
+                  minLength={mode === 'register' ? 8 : undefined}
                   placeholder="••••••••"
                   className="w-full border border-slate-200 rounded-xl pr-10 pl-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
+
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-blue-700 text-white py-3 rounded-xl font-medium text-sm hover:bg-blue-800 disabled:opacity-50 transition-colors"
             >
-              {loading ? '...' : setupMode ? 'צור חשבון' : 'כניסה'}
+              {loading ? '...' : mode === 'register' ? 'יצירת חשבון' : 'כניסה'}
             </button>
           </form>
-
-          <button
-            onClick={() => { setSetupMode(!setupMode); setError('') }}
-            className="w-full text-center text-xs text-slate-400 hover:text-slate-600 mt-4 transition-colors"
-          >
-            {setupMode ? 'חזרה להתחברות' : 'הגדרה ראשונה — צור חשבון'}
-          </button>
         </div>
       </div>
     </div>

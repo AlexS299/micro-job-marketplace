@@ -3,9 +3,10 @@ import db from '@/lib/db'
 import { formatPCN874, type VATReportData } from '@/lib/tax-authority'
 import { VAT_RATE } from '@/lib/vat'
 import { getAuthBusiness } from '@/lib/auth-context'
+import { audit, auditMeta } from '@/lib/audit'
 
 export async function POST(request: NextRequest) {
-  const { business, error } = await getAuthBusiness()
+  const { business, userId, error } = await getAuthBusiness()
   if (error) return error
   const body = await request.json()
 
@@ -83,6 +84,12 @@ export async function POST(request: NextRequest) {
         },
       })
 
+      await audit(business.id, userId, 'vat.submit', {
+        resourceType: 'vat',
+        changes: { periodStart, periodEnd, netVAT, submitted: true, confirmationNumber: result.confirmationNumber },
+        ...auditMeta(request),
+      })
+
       return NextResponse.json({ submitted: true, confirmationNumber: result.confirmationNumber, reportData, pcn874 })
     } catch (error) {
       return NextResponse.json({ error: 'שגיאה בהגשה לשע"מ', details: String(error) }, { status: 500 })
@@ -108,6 +115,11 @@ export async function POST(request: NextRequest) {
       },
     })
   }
+
+  await audit(business.id, userId, 'vat.submit', {
+    resourceType: 'vat',
+    changes: { periodStart, periodEnd, netVAT, submitted: false }, ...auditMeta(request),
+  })
 
   return NextResponse.json({
     submitted: false,

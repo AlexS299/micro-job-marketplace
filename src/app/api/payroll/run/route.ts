@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { calculatePayroll } from '@/lib/payroll'
 import { getAuthBusiness } from '@/lib/auth-context'
+import { audit, auditMeta } from '@/lib/audit'
 
 // GET /api/payroll/run?month=5&year=2025
 export async function GET(request: NextRequest) {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
 
 // POST — create or recalculate a payroll run
 export async function POST(request: NextRequest) {
-  const { business, error } = await getAuthBusiness()
+  const { business, userId, error } = await getAuthBusiness()
   if (error) return error
   const body = await request.json()
   const month = Number(body.month)
@@ -97,6 +98,11 @@ export async function POST(request: NextRequest) {
       },
     },
     include: { employees: { include: { employee: true } } },
+  })
+
+  await audit(business.id, userId, 'payroll.run', {
+    resourceId: run.id, resourceType: 'payroll',
+    changes: { month, year, totalGross: totals.totalGross }, ...auditMeta(request),
   })
 
   return NextResponse.json(run)

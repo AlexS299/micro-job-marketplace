@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { formatForm102XML, type Form102Data } from '@/lib/tax-authority'
-
-async function getBusiness() {
-  let b = await db.business.findFirst()
-  if (!b) b = await db.business.create({ data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' } })
-  return b
-}
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function POST(request: NextRequest) {
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
   const body = await request.json()
-  const business = await getBusiness()
   const month = Number(body.month)
   const year  = Number(body.year)
 

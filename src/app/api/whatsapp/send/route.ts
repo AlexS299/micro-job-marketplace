@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { sendWhatsAppMessage, ils } from '@/lib/whatsapp'
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function POST(req: NextRequest) {
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
+
   const body = await req.json() as {
-    businessId: string
     type: string
     payload: Record<string, string>
   }
-  const { businessId, type, payload } = body
+  const { type, payload } = body
+  const businessId = business.id
 
-  if (!businessId) return NextResponse.json({ error: 'businessId required' }, { status: 400 })
-
-  const business = await db.business.findUnique({ where: { id: businessId } })
-  if (!business?.whatsappPhone) {
+  if (!business.whatsappPhone) {
     return NextResponse.json({ error: 'No WhatsApp phone registered' }, { status: 400 })
   }
 

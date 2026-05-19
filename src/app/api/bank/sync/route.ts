@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchAccounts, fetchTransactions, type BankCode } from '@/lib/open-banking'
+import { safeDecrypt } from '@/lib/encrypt'
+import { getAuthBusiness } from '@/lib/auth-context'
 import db from '@/lib/db'
 
 export async function POST(req: NextRequest) {
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
+
   const body = await req.json().catch(() => ({})) as { connectionId?: string }
 
   const connections = await db.bankConnection.findMany({
-    where: { status: 'active', ...(body.connectionId ? { id: body.connectionId } : {}) },
+    where: { businessId: business.id, status: 'active', ...(body.connectionId ? { id: body.connectionId } : {}) },
     include: { accounts: true },
   })
 
@@ -22,7 +27,8 @@ export async function POST(req: NextRequest) {
       const toDate = new Date().toISOString().split('T')[0]
 
       // Refresh balances
-      const remoteAccounts = await fetchAccounts(bankCode, conn.accessToken)
+      const accessToken = safeDecrypt(conn.accessToken)
+      const remoteAccounts = await fetchAccounts(bankCode, accessToken)
       for (const acc of remoteAccounts) {
         let dbAcc = conn.accounts.find(a => a.externalId === acc.externalId)
         if (!dbAcc) {
@@ -46,7 +52,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Fetch and store new transactions
-        const txs = await fetchTransactions(bankCode, conn.accessToken, acc.externalId, fromDate, toDate)
+        const txs = await fetchTransactions(bankCode, accessToken, acc.externalId, fromDate, toDate)
         for (const tx of txs) {
           const exists = await db.bankTransaction.findFirst({
             where: { bankAccountId: dbAcc.id, reference: tx.externalId },

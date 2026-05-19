@@ -25,10 +25,12 @@ export interface Alert {
 function r(n: number) { return Math.round(n * 100) / 100 }
 function fmt(n: number) { return `₪${Math.abs(n).toLocaleString('he-IL', { maximumFractionDigits: 0 })}` }
 
-export async function generateAlerts(db: DB): Promise<Alert[]> {
+export async function generateAlerts(db: DB, businessId?: string): Promise<Alert[]> {
   const alerts: Alert[] = []
   const now = new Date()
-  const business = await db.business.findFirst()
+  const business = businessId
+    ? await db.business.findUnique({ where: { id: businessId } })
+    : await db.business.findFirst()
   if (!business) return alerts
 
   const [invoices, expenses, payrollRuns, bankAccounts, employees] = await Promise.all([

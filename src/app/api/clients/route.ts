@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
-
-async function getOrCreateBusiness() {
-  let business = await db.business.findFirst()
-  if (!business) {
-    business = await db.business.create({
-      data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' },
-    })
-  }
-  return business
-}
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const search = searchParams.get('search')
 
-    const business = await getOrCreateBusiness()
+    const { business, error } = await getAuthBusiness()
+    if (error) return error
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = { businessId: business.id }
@@ -68,7 +60,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'שם לקוח נדרש' }, { status: 400 })
     }
 
-    const business = await getOrCreateBusiness()
+    const { business, error } = await getAuthBusiness()
+    if (error) return error
 
     const client = await db.client.create({
       data: {

@@ -1,17 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
-import { parseCommand, twimlResponse, getHelpMessage, ils } from '@/lib/whatsapp'
+import { parseCommand, twimlResponse, getHelpMessage, ils, SANDBOX_MODE } from '@/lib/whatsapp'
 import { startOfMonth, startOfWeek, startOfDay, startOfYear } from 'date-fns'
 import Anthropic from '@anthropic-ai/sdk'
+import twilio from 'twilio'
 
-// Twilio sends form-encoded POST; validate signature in production
+function validateTwilioSignature(req: NextRequest, rawBody: string): boolean {
+  if (SANDBOX_MODE) return true  // skip in sandbox/dev
+  const authToken = process.env.TWILIO_AUTH_TOKEN
+  if (!authToken) return false
+  const signature = req.headers.get('x-twilio-signature') ?? ''
+  const url = req.url
+  // Parse form params for signature validation
+  const params: Record<string, string> = {}
+  for (const [k, v] of new URLSearchParams(rawBody)) params[k] = v
+  return twilio.validateRequest(authToken, signature, url, params)
+}
+
 export async function POST(req: NextRequest) {
   const contentType = req.headers.get('content-type') || ''
-  let from = '', body = '', mediaUrl = '', mediaType = ''
+  let from = '', body = '', mediaUrl = '', mediaType = '', rawBody = ''
 
   if (contentType.includes('application/x-www-form-urlencoded')) {
-    const text = await req.text()
-    const params = new URLSearchParams(text)
+    rawBody = await req.text()
+    const params = new URLSearchParams(rawBody)
     from      = params.get('From') || ''
     body      = params.get('Body') || ''
     mediaUrl  = params.get('MediaUrl0') || ''
@@ -22,6 +34,11 @@ export async function POST(req: NextRequest) {
     body      = json.Body || json.body || ''
     mediaUrl  = json.MediaUrl0 || ''
     mediaType = json.MediaContentType0 || ''
+  }
+
+  // Validate Twilio signature before processing
+  if (!validateTwilioSignature(req, rawBody)) {
+    return new NextResponse('Forbidden', { status: 403 })
   }
 
   // Normalize phone: whatsapp:+972501234567 → +972501234567

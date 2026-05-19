@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server'
 import { PLANS } from '@/lib/plans'
 import db from '@/lib/db'
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function GET() {
-  const business = await db.business.findFirst({
-    include: { subscription: true },
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
+
+  const subscription = await db.subscription.findUnique({
+    where: { businessId: business.id },
   })
-  const currentPlan = business?.subscription?.plan ?? 'FREE'
+  const currentPlan = subscription?.plan ?? 'FREE'
 
   return NextResponse.json({
     plans: Object.values(PLANS),
     currentPlan,
-    subscription: business?.subscription ?? null,
+    subscription: subscription ?? null,
   })
 }

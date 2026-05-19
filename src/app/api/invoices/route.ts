@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { calculateVAT, VAT_RATE, generateInvoiceNumber } from '@/lib/vat'
-
-async function getOrCreateBusiness() {
-  let business = await db.business.findFirst()
-  if (!business) {
-    business = await db.business.create({
-      data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' },
-    })
-  }
-  return business
-}
+import { getAuthBusiness } from '@/lib/auth-context'
+import { audit, auditMeta } from '@/lib/audit'
+import { parseBody, InvoiceCreateSchema } from '@/lib/validate'
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,7 +15,8 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const page = parseInt(searchParams.get('page') || '1')
 
-    const business = await getOrCreateBusiness()
+    const { business, error } = await getAuthBusiness()
+    if (error) return error
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = { businessId: business.id }
@@ -61,7 +55,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'נדרש לפחות פריט אחד' }, { status: 400 })
     }
 
-    const business = await getOrCreateBusiness()
+    const { business, userId, error } = await getAuthBusiness()
+    if (error) return error
 
     // Resolve or create client
     let resolvedClientId = clientId
@@ -121,6 +116,13 @@ export async function POST(req: NextRequest) {
         items: { create: processedItems },
       },
       include: { items: true, client: true },
+    })
+
+    await audit(business.id, userId ?? 'unknown', 'invoice.create', {
+      resourceId: invoice.id,
+      resourceType: 'invoice',
+      changes: { invoiceNumber, total },
+      ...auditMeta(req),
     })
 
     return NextResponse.json(invoice, { status: 201 })

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { exchangeCodeForToken, fetchAccounts, SUPPORTED_BANKS, type BankCode } from '@/lib/open-banking'
+import { encrypt } from '@/lib/encrypt'
 import db from '@/lib/db'
 
 export async function GET(req: NextRequest) {
@@ -33,21 +34,24 @@ export async function GET(req: NextRequest) {
     if (!business) business = await db.business.findFirst() ?? await db.business.create({ data: { name: 'העסק שלי' } })
 
     // Upsert connection
+    const encAccessToken  = encrypt(tokens.accessToken)
+    const encRefreshToken = tokens.refreshToken ? encrypt(tokens.refreshToken) : null
+
     const connection = await db.bankConnection.upsert({
       where: { businessId_bankCode: { businessId: business.id, bankCode } },
       create: {
         businessId: business.id,
         bankCode,
         bankName: SUPPORTED_BANKS[bankCode].name,
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: encAccessToken,
+        refreshToken: encRefreshToken,
         tokenExpiresAt: tokens.expiresAt,
         consentId: tokens.consentId,
         status: 'active',
       },
       update: {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: encAccessToken,
+        refreshToken: encRefreshToken,
         tokenExpiresAt: tokens.expiresAt,
         consentId: tokens.consentId,
         status: 'active',

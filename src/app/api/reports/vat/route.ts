@@ -1,23 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { VAT_RATE, getVATReportPeriod } from '@/lib/vat'
-
-async function getOrCreateBusiness() {
-  let business = await db.business.findFirst()
-  if (!business) {
-    business = await db.business.create({
-      data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' },
-    })
-  }
-  return business
-}
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const businessId = searchParams.get('businessId')
 
-    const business = await getOrCreateBusiness()
+    const { business, error } = await getAuthBusiness()
+    if (error) return error
     const bId = businessId || business.id
 
     // Get all VAT reports for the business
@@ -87,7 +79,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'תאריכי תקופה נדרשים' }, { status: 400 })
     }
 
-    const business = await getOrCreateBusiness()
+    const { business, error } = await getAuthBusiness()
+    if (error) return error
     const start = new Date(periodStart)
     const end = new Date(periodEnd)
 

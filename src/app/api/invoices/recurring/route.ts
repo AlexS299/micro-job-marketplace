@@ -1,18 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
-
-async function getOrCreateBusiness() {
-  let business = await db.business.findFirst()
-  if (!business) {
-    business = await db.business.create({
-      data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' },
-    })
-  }
-  return business
-}
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function GET() {
-  const business = await getOrCreateBusiness()
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
   const recurring = await db.recurringInvoice.findMany({
     where: { businessId: business.id },
     include: { client: true },
@@ -22,7 +14,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const business = await getOrCreateBusiness()
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
   const body = await request.json()
 
   const nextRun = new Date()

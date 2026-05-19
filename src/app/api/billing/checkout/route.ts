@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { PLANS, type PlanId } from '@/lib/plans'
 import db from '@/lib/db'
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function POST(req: NextRequest) {
   const { planId, billing = 'monthly' } = await req.json() as { planId: PlanId; billing?: 'monthly' | 'yearly' }
@@ -16,8 +17,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: `/dashboard/billing?success=1&plan=${planId}` })
   }
 
-  const business = await db.business.findFirst()
-  if (!business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
 
   // Get or create Stripe customer
   let customerId = business.stripeCustomerId

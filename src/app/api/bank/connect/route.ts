@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthorizationUrl, SUPPORTED_BANKS, type BankCode } from '@/lib/open-banking'
-import db from '@/lib/db'
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function POST(req: NextRequest) {
   const { bankCode } = await req.json() as { bankCode: string }
@@ -8,7 +8,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'בנק לא נתמך' }, { status: 400 })
   }
 
-  const business = await db.business.findFirst() ?? await db.business.create({ data: { name: 'העסק שלי' } })
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
+
   const state = Buffer.from(JSON.stringify({ businessId: business.id, bankCode, ts: Date.now() })).toString('base64url')
   const redirectUrl = getAuthorizationUrl(bankCode as BankCode, state)
 

@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { getPlan } from '@/lib/plans'
+import { requireAdmin } from '@/lib/auth-context'
+import { audit } from '@/lib/audit'
 
 export async function GET() {
+  const adminCheck = await requireAdmin()
+  if (adminCheck instanceof NextResponse) return adminCheck
+  await audit('system', adminCheck.userId, 'admin.view')
+
   const now = new Date()
   const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)

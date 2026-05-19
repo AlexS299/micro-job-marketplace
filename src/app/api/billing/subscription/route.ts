@@ -1,18 +1,22 @@
 import { NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { getPlan } from '@/lib/plans'
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function GET() {
-  const business = await db.business.findFirst({
-    include: {
-      subscription: true,
-      _count: { select: { invoices: true, employees: true } },
-    },
-  })
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
 
-  if (!business) return NextResponse.json({ plan: 'FREE', subscription: null, usage: null })
+  const [businessWithCounts, sub] = await Promise.all([
+    db.business.findUnique({
+      where: { id: business.id },
+      include: { _count: { select: { invoices: true, employees: true } } },
+    }),
+    db.subscription.findUnique({ where: { businessId: business.id } }),
+  ])
 
-  const sub = business.subscription
+  if (!businessWithCounts) return NextResponse.json({ plan: 'FREE', subscription: null, usage: null })
+
   const plan = getPlan(sub?.plan ?? 'FREE')
 
   const now = new Date()
@@ -28,8 +32,8 @@ export async function GET() {
     usage: {
       invoicesThisMonth,
       invoicesLimit: plan.features.invoicesPerMonth,
-      totalInvoices: business._count.invoices,
-      totalEmployees: business._count.employees,
+      totalInvoices: businessWithCounts._count.invoices,
+      totalEmployees: businessWithCounts._count.employees,
       employeesLimit: plan.features.employees,
     },
   })
@@ -37,8 +41,11 @@ export async function GET() {
 
 // Downgrade to free (cancel)
 export async function DELETE() {
-  const business = await db.business.findFirst({ include: { subscription: true } })
-  if (!business?.subscription) return NextResponse.json({ ok: true })
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
+
+  const sub = await db.subscription.findUnique({ where: { businessId: business.id } })
+  if (!sub) return NextResponse.json({ ok: true })
 
   await db.subscription.update({
     where: { businessId: business.id },

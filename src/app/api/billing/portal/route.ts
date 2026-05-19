@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
-import db from '@/lib/db'
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function POST(req: NextRequest) {
   if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === 'sk_test_placeholder') {
     return NextResponse.json({ url: '/dashboard/billing' })
   }
 
-  const business = await db.business.findFirst()
-  if (!business?.stripeCustomerId) {
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
+
+  if (!business.stripeCustomerId) {
     return NextResponse.json({ error: 'No Stripe customer' }, { status: 400 })
   }
 

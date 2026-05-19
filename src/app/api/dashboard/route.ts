@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { getVATReportPeriod } from '@/lib/vat'
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function GET() {
   try {
-    let business = await db.business.findFirst()
-    if (!business) {
-      business = await db.business.create({
-        data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' },
-      })
-    }
+    const { business, error } = await getAuthBusiness()
+    if (error) return error
 
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)

@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
-
-async function getBusiness() {
-  let b = await db.business.findFirst()
-  if (!b) b = await db.business.create({ data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' } })
-  return b
-}
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function GET() {
-  const business = await getBusiness()
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
   const employees = await db.employee.findMany({
     where: { businessId: business.id },
     orderBy: { lastName: 'asc' },
@@ -17,7 +13,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const business = await getBusiness()
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
   const body = await request.json()
   const employee = await db.employee.create({
     data: {

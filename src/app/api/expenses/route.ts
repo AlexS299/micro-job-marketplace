@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
-
-async function getOrCreateBusiness() {
-  let business = await db.business.findFirst()
-  if (!business) {
-    business = await db.business.create({
-      data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' },
-    })
-  }
-  return business
-}
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function GET(request: NextRequest) {
   try {
-    const business = await getOrCreateBusiness()
+    const { business, error } = await getAuthBusiness()
+    if (error) return error
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category')
     const status = searchParams.get('status')

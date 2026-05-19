@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { calculatePayroll } from '@/lib/payroll'
-
-async function getBusiness() {
-  let b = await db.business.findFirst()
-  if (!b) b = await db.business.create({ data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' } })
-  return b
-}
+import { getAuthBusiness } from '@/lib/auth-context'
 
 // GET /api/payroll/run?month=5&year=2025
 export async function GET(request: NextRequest) {
-  const business = await getBusiness()
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
   const { searchParams } = new URL(request.url)
   const month = searchParams.get('month') ? Number(searchParams.get('month')) : undefined
   const year  = searchParams.get('year')  ? Number(searchParams.get('year'))  : undefined
@@ -32,7 +28,8 @@ export async function GET(request: NextRequest) {
 
 // POST — create or recalculate a payroll run
 export async function POST(request: NextRequest) {
-  const business = await getBusiness()
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
   const body = await request.json()
   const month = Number(body.month)
   const year  = Number(body.year)

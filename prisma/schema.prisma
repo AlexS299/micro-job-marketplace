@@ -84,6 +84,19 @@ model BusinessUser {
   @@unique([businessId, userId])
 }
 
+model AuditLog {
+  id           String   @id @default(cuid())
+  businessId   String
+  userId       String
+  action       String
+  resourceId   String?
+  resourceType String?
+  changes      String?
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+}
+
 model WhatsAppSession {
   id          String   @id @default(cuid())
   businessId  String

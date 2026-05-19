@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
-
-async function getOrCreateBusiness() {
-  let business = await db.business.findFirst()
-  if (!business) {
-    business = await db.business.create({
-      data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' },
-    })
-  }
-  return business
-}
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,7 +12,8 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const page = parseInt(searchParams.get('page') || '1')
 
-    const business = await getOrCreateBusiness()
+    const { business, error } = await getAuthBusiness()
+    if (error) return error
 
     // Get bank accounts for this business
     const accounts = await db.bankAccount.findMany({
@@ -71,7 +63,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { transactions, accountId } = body
 
-    const business = await getOrCreateBusiness()
+    const { business, error } = await getAuthBusiness()
+    if (error) return error
 
     // Get or create bank account
     let bankAccountId = accountId

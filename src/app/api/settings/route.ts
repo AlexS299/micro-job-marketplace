@@ -1,24 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
-
-async function getOrCreateBusiness() {
-  let business = await db.business.findFirst()
-  if (!business) {
-    business = await db.business.create({
-      data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' },
-    })
-  }
-  return business
-}
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function GET() {
-  const business = await getOrCreateBusiness()
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
   return NextResponse.json(business)
 }
 
 export async function PUT(request: NextRequest) {
   const body = await request.json()
-  const business = await getOrCreateBusiness()
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
   const updated = await db.business.update({
     where: { id: business.id },
     data: {
@@ -40,7 +33,8 @@ export async function PUT(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const body = await request.json()
-  const business = await getOrCreateBusiness()
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
   const updated = await db.business.update({
     where: { id: business.id },
     data: body,

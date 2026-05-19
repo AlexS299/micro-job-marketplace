@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function GET() {
-  const business = await db.business.findFirst()
-  if (!business) return NextResponse.json([])
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
 
   const connections = await db.bankConnection.findMany({
     where: { businessId: business.id },

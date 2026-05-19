@@ -1,24 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk'
 import * as fs from 'fs'
 import * as path from 'path'
+import { EXPENSE_CATEGORIES, type ExpenseCategory } from './expense-categories'
+
+export { EXPENSE_CATEGORIES, type ExpenseCategory }
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-export const EXPENSE_CATEGORIES = {
-  OFFICE: 'ציוד וחומרי משרד',
-  TRAVEL: 'נסיעות ותחבורה',
-  MEALS: 'ארוחות ובידור',
-  PROFESSIONAL: 'שירותים מקצועיים',
-  MARKETING: 'שיווק ופרסום',
-  RENT: 'שכירות ואחזקה',
-  UTILITIES: 'חשמל, מים, תקשורת',
-  INSURANCE: 'ביטוח',
-  SALARY: 'שכר ותשלומים לעובדים',
-  SOFTWARE: 'תוכנה ומנויים דיגיטליים',
-  OTHER: 'אחר',
-} as const
-
-export type ExpenseCategory = keyof typeof EXPENSE_CATEGORIES
 
 export interface ScannedExpense {
   vendor: string | null

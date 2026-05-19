@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Check, Zap, Building2, Gift, ExternalLink, AlertCircle, TrendingUp, FileText, Users, Loader2 } from 'lucide-react'
 import { PLANS, getPlan, type PlanId, formatPrice } from '@/lib/plans'
@@ -42,7 +42,7 @@ function UsageBar({ used, limit, label }: { used: number; limit: number; label: 
   )
 }
 
-export default function BillingPage() {
+function BillingPageInner() {
   const params = useSearchParams()
   const [data, setData] = useState<SubData | null>(null)
   const [loadingPortal, setLoadingPortal] = useState(false)
@@ -231,4 +231,8 @@ export default function BillingPage() {
       </div>
     </div>
   )
+}
+
+export default function BillingPage() {
+  return <Suspense fallback={<div className="p-8 text-center text-slate-400">טוען...</div>}><BillingPageInner /></Suspense>
 }

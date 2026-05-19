@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { clsx } from 'clsx'
@@ -195,7 +195,7 @@ function ReconcilePanel({ onDone }: { onDone: () => void }) {
 
 // ─── main page ────────────────────────────────────────────────────────────────
 
-export default function BankPage() {
+function BankPageInner() {
   const searchParams = useSearchParams()
   const [data, setData] = useState<BankData | null>(null)
   const [connections, setConnections] = useState<BankConnection[]>([])
@@ -510,4 +510,8 @@ export default function BankPage() {
       ) : null}
     </div>
   )
+}
+
+export default function BankPage() {
+  return <Suspense fallback={<div className="p-8 text-center text-slate-400">טוען...</div>}><BankPageInner /></Suspense>
 }

@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { Upload, Camera, FileText, CheckCircle, AlertCircle, Trash2, Edit3, X, ScanLine } from 'lucide-react'
 import { clsx } from 'clsx'
-import { EXPENSE_CATEGORIES, type ExpenseCategory } from '@/lib/document-scanner'
+import { EXPENSE_CATEGORIES, type ExpenseCategory } from '@/lib/expense-categories'
 
 interface Expense {
   id: string

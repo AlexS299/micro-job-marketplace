@@ -38,6 +38,7 @@ model Business {
   chatMessages      ChatMessage[]
   usageRecords      UsageRecord[]
   businessUsers     BusinessUser[]
+  invitations       Invitation[]
   paymentLinks      PaymentLink[]
   payments          Payment[]
   quotes            Quote[]
@@ -87,11 +88,26 @@ model BusinessUser {
   business   Business @relation(fields: [businessId], references: [id])
   userId     String
   user       User     @relation(fields: [userId], references: [id])
-  role       String   @default("MEMBER")
+  role       String   @default("VIEWER")   // ADMIN | EDITOR | VIEWER
   invitedAt  DateTime @default(now())
   acceptedAt DateTime?
 
   @@unique([businessId, userId])
+}
+
+model Invitation {
+  id         String    @id @default(cuid())
+  businessId String
+  business   Business  @relation(fields: [businessId], references: [id])
+  email      String
+  role       String    @default("VIEWER")
+  token      String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([token])
+  @@index([businessId])
 }
 
 model AuditLog {

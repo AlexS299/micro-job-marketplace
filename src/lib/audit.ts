@@ -11,6 +11,7 @@ export type AuditAction =
   | 'vat.submit'
   | 'settings.update'
   | 'billing.upgrade'| 'billing.cancel'
+  | 'team.invite'    | 'team.role_change'| 'team.remove'
   | 'user.login'     | 'user.logout'    | 'user.password_change'
   | 'admin.view'
 

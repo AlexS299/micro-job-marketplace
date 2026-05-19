@@ -222,3 +222,45 @@ export async function sendReminderEmail(
     html: htmlBody,
   })
 }
+
+export async function sendInvitationEmail(params: {
+  toEmail: string
+  businessName: string
+  inviterName: string
+  role: string
+  inviteUrl: string
+  expiresInDays: number
+}) {
+  const transporter = createTransporter()
+  const roleHeb: Record<string, string> = {
+    ADMIN: 'מנהל', EDITOR: 'עורך', VIEWER: 'צופה (רואה חשבון)',
+  }
+  const subject = `הוזמנת להצטרף ל-${params.businessName}`
+  const html = `
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head><meta charset="UTF-8" /><style>
+  body { font-family: Arial, sans-serif; background: #f8fafc; margin: 0; padding: 20px; }
+  .card { background: white; border-radius: 12px; padding: 32px; max-width: 480px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .badge { display: inline-block; background: #eff6ff; color: #1d4ed8; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; }
+  .btn { display: block; background: #1d4ed8; color: white; text-decoration: none; text-align: center; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 16px; margin: 24px 0; }
+  .footer { font-size: 12px; color: #94a3b8; margin-top: 20px; }
+</style></head>
+<body>
+<div class="card">
+  <h2 style="margin-top:0;">הוזמנת ל-${params.businessName} 👋</h2>
+  <p>${params.inviterName} הזמין אותך להצטרף כ:</p>
+  <span class="badge">${roleHeb[params.role] ?? params.role}</span>
+  <a href="${params.inviteUrl}" class="btn">קבל הזמנה ✓</a>
+  <p style="font-size:13px;color:#64748b;">ההזמנה תקפה ל-${params.expiresInDays} ימים.</p>
+  <div class="footer">אם לא ציפית לאימייל זה, ניתן להתעלם ממנו.</div>
+</div>
+</body></html>`
+
+  await transporter.sendMail({
+    from: `"${params.businessName}" <${process.env.EMAIL_FROM || process.env.SMTP_USER}>`,
+    to: params.toEmail,
+    subject,
+    html,
+  })
+}

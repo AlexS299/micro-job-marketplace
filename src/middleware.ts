@@ -36,7 +36,7 @@ const WEBHOOK_PATHS = [
   '/api/payments/tranzila/webhook',
   '/api/payments/payme/webhook',
 ]
-const PUBLIC_PATHS  = ['/login', '/pricing', '/api/auth', '/pay/', '/quote/', '/api/quotes/respond/']
+const PUBLIC_PATHS  = ['/login', '/pricing', '/api/auth', '/pay/', '/quote/', '/api/quotes/respond/', '/invite/']
 const ADMIN_PATHS   = ['/admin', '/api/admin']
 
 export default withAuth(

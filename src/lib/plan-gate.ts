@@ -3,8 +3,9 @@ import db from '@/lib/db'
 import { getPlan, isWithinLimit, canUseFeature, type PlanFeatures } from '@/lib/plans'
 import { NextResponse } from 'next/server'
 
-export async function getBusinessPlan() {
-  const business = await db.business.findFirst({
+export async function getBusinessPlan(businessId: string) {
+  const business = await db.business.findUnique({
+    where: { id: businessId },
     include: { subscription: true },
   })
   if (!business) return null
@@ -12,8 +13,8 @@ export async function getBusinessPlan() {
   return { business, plan }
 }
 
-export async function requireFeature(feature: keyof PlanFeatures) {
-  const result = await getBusinessPlan()
+export async function requireFeature(businessId: string, feature: keyof PlanFeatures) {
+  const result = await getBusinessPlan(businessId)
   if (!result) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
   if (!canUseFeature(result.plan, feature)) {
     return NextResponse.json({
@@ -25,14 +26,14 @@ export async function requireFeature(feature: keyof PlanFeatures) {
   return null
 }
 
-export async function checkInvoiceLimit(): Promise<NextResponse | null> {
-  const result = await getBusinessPlan()
+export async function checkInvoiceLimit(businessId: string): Promise<NextResponse | null> {
+  const result = await getBusinessPlan(businessId)
   if (!result) return null
 
   const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const invoicesThisMonth = await db.invoice.count({
-    where: { businessId: result.business.id, createdAt: { gte: monthStart } },
+    where: { businessId, createdAt: { gte: monthStart } },
   })
 
   if (!isWithinLimit(result.plan, 'invoicesPerMonth', invoicesThisMonth)) {
@@ -45,12 +46,12 @@ export async function checkInvoiceLimit(): Promise<NextResponse | null> {
   return null
 }
 
-export async function checkEmployeeLimit(): Promise<NextResponse | null> {
-  const result = await getBusinessPlan()
+export async function checkEmployeeLimit(businessId: string): Promise<NextResponse | null> {
+  const result = await getBusinessPlan(businessId)
   if (!result) return null
 
   const employeeCount = await db.employee.count({
-    where: { businessId: result.business.id, isActive: true },
+    where: { businessId, isActive: true },
   })
 
   if (!isWithinLimit(result.plan, 'employees', employeeCount)) {

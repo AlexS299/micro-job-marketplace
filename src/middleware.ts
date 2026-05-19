@@ -40,9 +40,13 @@ export default withAuth(
 
     // Rate limit config by endpoint type
     let limitConfig = LIMITS.api
-    if (pathname === '/api/auth/callback/credentials') limitConfig = LIMITS.login
-    if (WEBHOOK_PATHS.some(p => pathname.startsWith(p)))  limitConfig = LIMITS.webhook
-    if (pathname.startsWith('/api/billing/checkout'))     limitConfig = LIMITS.checkout
+    if (pathname === '/api/auth/callback/credentials')  limitConfig = LIMITS.login
+    if (WEBHOOK_PATHS.some(p => pathname.startsWith(p))) limitConfig = LIMITS.webhook
+    if (pathname.startsWith('/api/billing/checkout'))    limitConfig = LIMITS.checkout
+    if (pathname.startsWith('/api/expenses/scan'))       limitConfig = { limit: 10, windowMs: 60_000 }
+    if (pathname.startsWith('/api/tax/submit-vat'))      limitConfig = { limit: 10, windowMs: 3_600_000 }
+    if (pathname.startsWith('/api/payroll/run'))         limitConfig = { limit: 20, windowMs: 60_000 }
+    if (pathname.startsWith('/api/chat'))                limitConfig = { limit: 30, windowMs: 60_000 }
 
     const segment = pathname.split('/').slice(0, 4).join('/')
     const { allowed, remaining, resetAt } = rateLimit(`${ip}:${segment}`, limitConfig)

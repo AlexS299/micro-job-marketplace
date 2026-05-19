@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { streamChat } from '@/lib/claude'
 import db from '@/lib/db'
+import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function POST(req: NextRequest) {
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
+
   try {
     const { message, history = [] } = await req.json()
 
@@ -10,9 +14,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'הודעה נדרשת' }, { status: 400 })
     }
 
-    // Save user message to DB
+    // Save user message to DB scoped to this business
     await db.chatMessage.create({
-      data: { role: 'user', content: message },
+      data: { role: 'user', content: message, businessId: business.id },
     })
 
     const messages = [
@@ -23,7 +27,6 @@ export async function POST(req: NextRequest) {
       { role: 'user' as const, content: message },
     ]
 
-    // Create a ReadableStream for SSE
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {
@@ -39,10 +42,9 @@ export async function POST(req: NextRequest) {
             }
 
             if (chunk.type === 'done') {
-              // Save assistant response to DB
               if (fullText) {
                 await db.chatMessage.create({
-                  data: { role: 'assistant', content: fullText },
+                  data: { role: 'assistant', content: fullText, businessId: business.id },
                 })
               }
               controller.close()
@@ -82,8 +84,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
+
   try {
     const messages = await db.chatMessage.findMany({
+      where: { businessId: business.id },
       orderBy: { createdAt: 'asc' },
       take: 100,
     })

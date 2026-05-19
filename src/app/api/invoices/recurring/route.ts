@@ -18,8 +18,11 @@ export async function POST(request: NextRequest) {
   if (error) return error
   const body = await request.json()
 
+  const dayOfMonth = Math.min(Math.max(Number(body.dayOfMonth) || 1, 1), 31)
+  const reminderDays = Math.min(Math.max(Number(body.reminderDays ?? 7), 0), 30)
+
   const nextRun = new Date()
-  nextRun.setDate(body.dayOfMonth || 1)
+  nextRun.setDate(dayOfMonth)
   if (nextRun <= new Date()) nextRun.setMonth(nextRun.getMonth() + 1)
 
   const recurring = await db.recurringInvoice.create({
@@ -29,11 +32,11 @@ export async function POST(request: NextRequest) {
       description: body.description,
       items: JSON.stringify(body.items),
       frequency: body.frequency || 'MONTHLY',
-      dayOfMonth: body.dayOfMonth || 1,
+      dayOfMonth,
       nextRunDate: nextRun,
       isActive: true,
       emailReminder: body.emailReminder ?? true,
-      reminderDays: body.reminderDays ?? 7,
+      reminderDays,
     },
     include: { client: true },
   })
@@ -41,7 +44,17 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
+
   const { id, isActive } = await request.json()
+  if (!id) return NextResponse.json({ error: 'חסר מזהה' }, { status: 400 })
+
+  const existing = await db.recurringInvoice.findFirst({
+    where: { id, businessId: business.id },
+  })
+  if (!existing) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 })
+
   const updated = await db.recurringInvoice.update({
     where: { id },
     data: { isActive },
@@ -51,9 +64,18 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
+
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'חסר מזהה' }, { status: 400 })
+
+  const existing = await db.recurringInvoice.findFirst({
+    where: { id, businessId: business.id },
+  })
+  if (!existing) return NextResponse.json({ error: 'לא נמצא' }, { status: 404 })
+
   await db.recurringInvoice.delete({ where: { id } })
   return NextResponse.json({ success: true })
 }

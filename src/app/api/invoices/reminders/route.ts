@@ -1,8 +1,18 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { sendReminderEmail } from '@/lib/email'
 
-export async function POST() {
+// Internal cron endpoint — must supply CRON_SECRET in Authorization header
+export async function POST(req: NextRequest) {
+  const secret = process.env.CRON_SECRET
+  if (!secret) {
+    return NextResponse.json({ error: 'Cron endpoint not configured' }, { status: 503 })
+  }
+  const auth = req.headers.get('authorization')
+  if (auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const now = new Date()
   const overdue = await db.invoice.findMany({
     where: {
@@ -12,7 +22,6 @@ export async function POST() {
     include: { client: true, business: true, items: true },
   })
 
-  // Update overdue status
   await db.invoice.updateMany({
     where: { status: 'SENT', dueDate: { lt: now } },
     data: { status: 'OVERDUE' },

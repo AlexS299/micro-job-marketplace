@@ -35,6 +35,7 @@ model Business {
   payrollRuns       PayrollRun[]
   whatsappSessions  WhatsAppSession[]
   subscription      Subscription?
+  chatMessages      ChatMessage[]
   usageRecords      UsageRecord[]
   businessUsers     BusinessUser[]
 }
@@ -258,10 +259,14 @@ model VATReport {
 
 model ChatMessage {
   id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
   role       String
   content    String
   toolUse    String?
   createdAt  DateTime @default(now())
+
+  @@index([businessId])
 }
 
 model Employee {

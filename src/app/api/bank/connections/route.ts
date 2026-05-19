@@ -20,9 +20,17 @@ export async function GET() {
 }
 
 export async function DELETE(req: NextRequest) {
+  const { business, error } = await getAuthBusiness()
+  if (error) return error
+
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+
+  const existing = await db.bankConnection.findFirst({
+    where: { id, businessId: business.id },
+  })
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   await db.bankConnection.update({ where: { id }, data: { status: 'revoked' } })
   return NextResponse.json({ ok: true })

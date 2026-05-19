@@ -1,8 +1,18 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { VAT_RATE, generateInvoiceNumber } from '@/lib/vat'
 
-export async function POST() {
+// Internal cron endpoint — must supply CRON_SECRET in Authorization header
+export async function POST(req: NextRequest) {
+  const secret = process.env.CRON_SECRET
+  if (!secret) {
+    return NextResponse.json({ error: 'Cron endpoint not configured' }, { status: 503 })
+  }
+  const auth = req.headers.get('authorization')
+  if (auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const now = new Date()
   const due = await db.recurringInvoice.findMany({
     where: { isActive: true, nextRunDate: { lte: now } },
@@ -54,7 +64,6 @@ export async function POST() {
       },
     })
 
-    // Advance next run date
     const next = new Date(recurring.nextRunDate)
     if (recurring.frequency === 'MONTHLY') next.setMonth(next.getMonth() + 1)
     else if (recurring.frequency === 'QUARTERLY') next.setMonth(next.getMonth() + 3)

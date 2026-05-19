@@ -5,12 +5,9 @@ import { getAuthBusiness } from '@/lib/auth-context'
 
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url)
-    const businessId = searchParams.get('businessId')
-
     const { business, error } = await getAuthBusiness()
     if (error) return error
-    const bId = businessId || business.id
+    const bId = business.id
 
     // Get all VAT reports for the business
     const reports = await db.vATReport.findMany({

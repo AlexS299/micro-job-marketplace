@@ -5,7 +5,9 @@ const KEY_ENV = process.env.ENCRYPTION_KEY
 
 function getKey(): Buffer {
   if (!KEY_ENV) {
-    // Dev fallback — in production ENCRYPTION_KEY must be set
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('ENCRYPTION_KEY environment variable is required in production. Generate with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'base64\'))"')
+    }
     return crypto.scryptSync('dev-fallback-key-change-in-prod', 'salt', 32)
   }
   const buf = Buffer.from(KEY_ENV, 'base64')

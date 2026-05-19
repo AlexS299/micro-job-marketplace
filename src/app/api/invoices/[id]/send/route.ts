@@ -2,17 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 import { generateInvoicePDF } from '@/lib/invoice-pdf'
 import { sendInvoiceEmail } from '@/lib/email'
+import { getAuthBusiness } from '@/lib/auth-context'
+import { audit, auditMeta } from '@/lib/audit'
 import type { Invoice, Business, Client, InvoiceItem } from '@/types'
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { business, userId, error } = await getAuthBusiness()
+  if (error) return error
+
   try {
     const body = await req.json().catch(() => ({}))
 
-    const invoice = await db.invoice.findUnique({
-      where: { id: params.id },
+    const invoice = await db.invoice.findFirst({
+      where: { id: params.id, businessId: business.id },
       include: { client: true, items: true, business: true },
     })
 
@@ -62,9 +67,14 @@ export async function POST(
       },
     })
 
+    await audit(business.id, userId, 'invoice.send', {
+      resourceId: params.id, resourceType: 'invoice',
+      changes: { sentTo: email }, ...auditMeta(req),
+    })
+
     return NextResponse.json({ success: true, sentTo: email, invoice: updatedInvoice })
-  } catch (error) {
-    console.error('Send invoice error:', error)
+  } catch (err) {
+    console.error('Send invoice error:', err)
     return NextResponse.json({ error: 'שגיאה בשליחת החשבונית' }, { status: 500 })
   }
 }

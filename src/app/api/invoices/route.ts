@@ -4,6 +4,7 @@ import { calculateVAT, VAT_RATE, generateInvoiceNumber } from '@/lib/vat'
 import { getAuthBusiness } from '@/lib/auth-context'
 import { audit, auditMeta } from '@/lib/audit'
 import { parseBody, InvoiceCreateSchema } from '@/lib/validate'
+import { checkInvoiceLimit } from '@/lib/plan-gate'
 
 export async function GET(req: NextRequest) {
   try {
@@ -57,6 +58,9 @@ export async function POST(req: NextRequest) {
 
     const { business, userId, error } = await getAuthBusiness()
     if (error) return error
+
+    const limitError = await checkInvoiceLimit(business.id)
+    if (limitError) return limitError
 
     // Resolve or create client
     let resolvedClientId = clientId

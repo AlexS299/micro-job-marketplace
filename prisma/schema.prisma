@@ -40,6 +40,7 @@ model Business {
   businessUsers     BusinessUser[]
   paymentLinks      PaymentLink[]
   payments          Payment[]
+  quotes            Quote[]
   paymentProvider   String?
   cardcomTerminal   String?
   cardcomUsername   String?
@@ -159,6 +160,7 @@ model Client {
   updatedAt         DateTime           @updatedAt
   invoices          Invoice[]
   recurringInvoices RecurringInvoice[]
+  quotes            Quote[]
 }
 
 model Invoice {
@@ -236,6 +238,47 @@ model InvoiceItem {
   unitPrice   Float
   total       Float
   vatIncluded Boolean  @default(false)
+}
+
+model Quote {
+  id                   String      @id @default(cuid())
+  businessId           String
+  business             Business    @relation(fields: [businessId], references: [id])
+  clientId             String?
+  client               Client?     @relation(fields: [clientId], references: [id])
+  quoteNumber          String      @unique
+  token                String      @unique
+  status               String      @default("DRAFT")
+  issueDate            DateTime    @default(now())
+  validUntil           DateTime
+  currency             String      @default("ILS")
+  subtotal             Float       @default(0)
+  vatAmount            Float       @default(0)
+  vatRate              Float       @default(0.18)
+  total                Float       @default(0)
+  notes                String?
+  terms                String?
+  sentAt               DateTime?
+  acceptedAt           DateTime?
+  declinedAt           DateTime?
+  convertedToInvoiceId String?
+  items                QuoteItem[]
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  @@index([businessId])
+  @@index([token])
+}
+
+model QuoteItem {
+  id          String  @id @default(cuid())
+  quoteId     String
+  quote       Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float   @default(1)
+  unitPrice   Float
+  total       Float
+  vatIncluded Boolean @default(false)
 }
 
 model BankConnection {

@@ -2,6 +2,7 @@ import db from '@/lib/db'
 
 export type AuditAction =
   | 'invoice.create' | 'invoice.update' | 'invoice.delete' | 'invoice.send' | 'invoice.paid'
+  | 'quote.create'  | 'quote.update'   | 'quote.delete'   | 'quote.send'   | 'quote.convert'
   | 'expense.create' | 'expense.update' | 'expense.delete'
   | 'client.create'  | 'client.update'  | 'client.delete'
   | 'employee.create'| 'employee.update'| 'employee.delete'

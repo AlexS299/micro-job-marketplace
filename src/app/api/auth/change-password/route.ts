@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'משתמש לא נמצא' }, { status: 404 })
   }
 
+  if (!user.password) return NextResponse.json({ error: 'חשבון זה משתמש בכניסה עם Google' }, { status: 400 })
   const valid = await bcrypt.compare(currentPassword, user.password)
   if (!valid) {
     return NextResponse.json({ error: 'סיסמה נוכחית שגויה' }, { status: 400 })

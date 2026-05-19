@@ -24,6 +24,7 @@ import {
   CreditCard,
   ClipboardList,
   Wallet,
+  Upload,
 } from 'lucide-react'
 
 const navItems = [
@@ -43,6 +44,7 @@ const navItems = [
   { href: '/dashboard/alerts',         label: 'התראות',         icon: Bell },
   { href: '/dashboard/whatsapp',       label: 'WhatsApp',       icon: MessageCircle },
   { href: '/dashboard/billing',        label: 'חיוב',           icon: CreditCard },
+  { href: '/dashboard/import',         label: 'ייבוא נתונים',   icon: Upload },
   { href: '/dashboard/settings',       label: 'הגדרות',         icon: Settings },
 ]
 

@@ -172,6 +172,7 @@ model Client {
   email             String?
   phone             String?
   notes             String?
+  portalToken       String?            @unique
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   invoices          Invoice[]

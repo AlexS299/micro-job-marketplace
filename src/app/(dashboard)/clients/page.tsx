@@ -11,6 +11,7 @@ import {
   TrendingUp,
   X,
   Loader2,
+  Link2,
 } from 'lucide-react'
 import { formatILS } from '@/lib/vat'
 
@@ -56,6 +57,8 @@ export default function ClientsPage() {
   const [formData, setFormData] = useState<ClientFormState>(emptyForm)
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState('')
+  const [portalLoading, setPortalLoading] = useState<string | null>(null)
+  const [copiedPortal, setCopiedPortal] = useState<string | null>(null)
 
   const fetchClients = useCallback(async () => {
     setLoading(true)
@@ -109,6 +112,21 @@ export default function ClientsPage() {
       setFormError(err instanceof Error ? err.message : 'שגיאה')
     } finally {
       setFormLoading(false)
+    }
+  }
+
+  const copyPortalLink = async (clientId: string) => {
+    setPortalLoading(clientId)
+    try {
+      const res = await fetch(`/api/clients/${clientId}/portal-token`, { method: 'POST' })
+      const { portalUrl } = await res.json() as { portalUrl: string }
+      await navigator.clipboard.writeText(portalUrl)
+      setCopiedPortal(clientId)
+      setTimeout(() => setCopiedPortal(null), 2500)
+    } catch {
+      // ignore
+    } finally {
+      setPortalLoading(null)
     }
   }
 
@@ -237,6 +255,19 @@ export default function ClientsPage() {
 
               {/* Actions */}
               <div className="flex gap-2 mt-3 pt-3 border-t border-slate-50">
+                <button
+                  onClick={() => copyPortalLink(client.id)}
+                  disabled={!!portalLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 disabled:opacity-60 rounded-lg transition-colors"
+                  title="העתק קישור פורטל לקוח"
+                >
+                  {portalLoading === client.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Link2 className="w-3.5 h-3.5" />
+                  )}
+                  {copiedPortal === client.id ? 'הועתק!' : 'פורטל'}
+                </button>
                 <button
                   onClick={() => handleDelete(client.id, client.name)}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"

@@ -21,6 +21,7 @@ model Business {
   taxType           String             @default("OSEK_MURSHEH")
   vatReportPeriod   String             @default("BIMONTHLY")
   whatsappPhone     String?
+  stripeCustomerId  String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   clients           Client[]
@@ -33,6 +34,54 @@ model Business {
   employees         Employee[]
   payrollRuns       PayrollRun[]
   whatsappSessions  WhatsAppSession[]
+  subscription      Subscription?
+  usageRecords      UsageRecord[]
+  businessUsers     BusinessUser[]
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  businessId           String    @unique
+  business             Business  @relation(fields: [businessId], references: [id])
+  plan                 String    @default("FREE")
+  status               String    @default("active")
+  stripeSubscriptionId String?   @unique
+  stripePriceId        String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  trialEndsAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model UsageRecord {
+  id           String   @id @default(cuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id])
+  month        Int
+  year         Int
+  invoiceCount Int      @default(0)
+  expenseCount Int      @default(0)
+  employeeCount Int     @default(0)
+  aiCallCount  Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([businessId, month, year])
+}
+
+model BusinessUser {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  role       String   @default("MEMBER")
+  invitedAt  DateTime @default(now())
+  acceptedAt DateTime?
+
+  @@unique([businessId, userId])
 }
 
 model WhatsAppSession {
@@ -275,12 +324,14 @@ model EmployeePayroll {
 }
 
 model User {
-  id         String   @id @default(cuid())
-  email      String   @unique
-  password   String
-  name       String?
-  businessId String?
-  createdAt  DateTime @default(now())
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password      String
+  name          String?
+  businessId    String?
+  role          String         @default("USER")
+  createdAt     DateTime       @default(now())
+  businessUsers BusinessUser[]
 }
 
 model RecurringInvoice {

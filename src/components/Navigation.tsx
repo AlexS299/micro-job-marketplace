@@ -21,6 +21,7 @@ import {
   TrendingUp,
   Bell,
   MessageCircle,
+  CreditCard,
 } from 'lucide-react'
 
 const navItems = [
@@ -36,6 +37,7 @@ const navItems = [
   { href: '/dashboard/financial', label: 'דוחות כספיים', icon: TrendingUp },
   { href: '/dashboard/reports', label: 'מע"מ', icon: BarChart3 },
   { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: MessageCircle },
+  { href: '/dashboard/billing', label: 'חיוב', icon: CreditCard },
   { href: '/dashboard/settings', label: 'הגדרות', icon: Settings },
 ]
 

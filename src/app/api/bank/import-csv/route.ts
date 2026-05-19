@@ -1,16 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 import Papa from 'papaparse'
-
-async function getOrCreateBusiness() {
-  let business = await db.business.findFirst()
-  if (!business) {
-    business = await db.business.create({
-      data: { name: 'העסק שלי', taxType: 'OSEK_MURSHEH', vatReportPeriod: 'BIMONTHLY' },
-    })
-  }
-  return business
-}
+import { getAuthBusiness } from '@/lib/auth-context'
 
 async function getOrCreateBankAccount(businessId: string) {
   let account = await db.bankAccount.findFirst({ where: { businessId } })
@@ -114,7 +105,8 @@ export async function POST(request: NextRequest) {
     const headers = data.length > 0 ? Object.keys(data[0]) : []
     const format = detectFormat(headers)
 
-    const business = await getOrCreateBusiness()
+    const { business, error: authError } = await getAuthBusiness()
+    if (authError) return authError
     const account = await getOrCreateBankAccount(business.id)
 
     let imported = 0

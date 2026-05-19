@@ -56,8 +56,8 @@ export async function cardcomCreateLink(
 export function cardcomParseWebhook(
   params: Record<string, string>
 ): WebhookPayment {
-  // ResponseCode=0 means success; ReturnValue is our reference
-  const success = params.ResponseCode === '0' || params.Operation === 'Charge'
+  // ResponseCode=0 AND Operation=Charge means success
+  const success = params.ResponseCode === '0' && params.Operation === 'Charge'
   return {
     success,
     amount:        parseFloat(params.Amount || '0'),

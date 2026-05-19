@@ -84,17 +84,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const email = body.email || invoice.client?.email
     if (!email) return NextResponse.json({ error: 'כתובת אימייל נדרשת' }, { status: 400 })
 
-    const pdfBuffer = await generateInvoicePDF(
-      invoice as unknown as Invoice & { items: InvoiceItem[] },
-      invoice.business as unknown as Business,
-      invoice.client as unknown as Client | null
-    )
-    await sendInvoiceEmail(
-      { invoiceNumber: invoice.invoiceNumber, total: invoice.total, subtotal: invoice.subtotal, vatAmount: invoice.vatAmount, issueDate: invoice.issueDate, dueDate: invoice.dueDate, notes: invoice.notes },
-      { name: invoice.business.name, email: invoice.business.email, phone: invoice.business.phone, address: invoice.business.address },
-      { name: invoice.client?.name || email, email },
-      pdfBuffer
-    )
+    try {
+      const pdfBuffer = await generateInvoicePDF(
+        invoice as unknown as Invoice & { items: InvoiceItem[] },
+        invoice.business as unknown as Business,
+        invoice.client as unknown as Client | null
+      )
+      await sendInvoiceEmail(
+        { invoiceNumber: invoice.invoiceNumber, total: invoice.total, subtotal: invoice.subtotal, vatAmount: invoice.vatAmount, issueDate: invoice.issueDate, dueDate: invoice.dueDate, notes: invoice.notes },
+        { name: invoice.business.name, email: invoice.business.email, phone: invoice.business.phone, address: invoice.business.address },
+        { name: invoice.client?.name || email, email },
+        pdfBuffer
+      )
+    } catch (emailErr) {
+      console.error('[invoice/send] email failed:', emailErr)
+      return NextResponse.json({ error: 'שליחת המייל נכשלה. בדוק הגדרות מייל.' }, { status: 500 })
+    }
+
     await db.invoice.update({
       where: { id: params.id },
       data: { status: invoice.status === 'DRAFT' ? 'SENT' : invoice.status, emailSentAt: new Date() },

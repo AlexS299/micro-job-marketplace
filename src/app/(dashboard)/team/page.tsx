@@ -51,7 +51,7 @@ export default function TeamPage() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<Role>('VIEWER')
   const [inviting, setInviting] = useState(false)
-  const [inviteResult, setInviteResult] = useState<{ url?: string; error?: string } | null>(null)
+  const [inviteResult, setInviteResult] = useState<{ url?: string; error?: string; warning?: string } | null>(null)
   const [pendingAction, setPendingAction] = useState<string | null>(null)
 
   const load = async () => {
@@ -72,9 +72,9 @@ export default function TeamPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
     })
-    const d = await res.json() as { ok?: boolean; inviteUrl?: string; error?: string }
+    const d = await res.json() as { ok?: boolean; inviteUrl?: string; error?: string; warning?: string }
     if (d.ok) {
-      setInviteResult({ url: d.inviteUrl })
+      setInviteResult({ url: d.inviteUrl, warning: d.warning })
       setInviteEmail('')
       await load()
     } else {
@@ -147,6 +147,9 @@ export default function TeamPage() {
 
         {inviteResult?.error && (
           <p className="mt-3 text-sm text-red-600">{inviteResult.error}</p>
+        )}
+        {inviteResult?.warning && (
+          <p className="mt-3 text-sm text-amber-600">{inviteResult.warning}</p>
         )}
         {inviteResult?.url && (
           <div className="mt-3 bg-green-50 border border-green-200 rounded-xl p-3">

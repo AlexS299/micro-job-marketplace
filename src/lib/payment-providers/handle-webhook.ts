@@ -27,52 +27,53 @@ export async function handlePaymentWebhook(
     return { ok: false, message: `PaymentLink not found: ${payment.reference}` }
   }
 
+  // Idempotency: already processed
   if (link.status === 'PAID') {
     return { ok: true, message: 'Already processed' }
   }
 
-  // Record payment
-  await db.payment.create({
-    data: {
-      invoiceId:     link.invoiceId,
-      businessId:    link.businessId,
-      provider,
-      amount:        payment.amount,
-      currency:      payment.currency,
-      transactionId: payment.transactionId || null,
-      status:        payment.success ? 'SUCCESS' : 'FAILED',
-      rawData:       JSON.stringify(payment.rawData),
-    },
+  // Check expiry before accepting payment
+  if (link.expiresAt < new Date()) {
+    return { ok: false, message: 'Payment link expired' }
+  }
+
+  // Use a transaction to prevent concurrent webhook duplicates
+  await db.$transaction(async (tx) => {
+    // Re-read inside transaction to catch concurrent updates
+    const fresh = await tx.paymentLink.findUnique({ where: { id: link.id }, select: { status: true } })
+    if (fresh?.status === 'PAID') return // already handled by concurrent request
+
+    await tx.payment.create({
+      data: {
+        invoiceId:     link.invoiceId,
+        businessId:    link.businessId,
+        provider,
+        amount:        payment.amount,
+        currency:      payment.currency,
+        transactionId: payment.transactionId || null,
+        status:        payment.success ? 'SUCCESS' : 'FAILED',
+        rawData:       JSON.stringify(payment.rawData),
+      },
+    })
+
+    if (payment.success) {
+      const now = new Date()
+      await tx.paymentLink.update({
+        where: { id: link.id },
+        data: { status: 'PAID', paidAt: now, transactionId: payment.transactionId || null },
+      })
+      await tx.invoice.update({
+        where: { id: link.invoiceId },
+        data: { status: 'PAID', paidAt: now },
+      })
+    }
   })
 
   if (payment.success) {
-    const now = new Date()
-
-    // Mark payment link as paid
-    await db.paymentLink.update({
-      where: { id: link.id },
-      data: {
-        status:        'PAID',
-        paidAt:        now,
-        transactionId: payment.transactionId || null,
-      },
-    })
-
-    // Mark invoice as paid
-    await db.invoice.update({
-      where: { id: link.invoiceId },
-      data: { status: 'PAID', paidAt: now },
-    })
-
     await audit(link.businessId, 'system', 'invoice.paid', {
       resourceId:   link.invoiceId,
       resourceType: 'invoice',
-      changes: {
-        provider,
-        amount:        payment.amount,
-        transactionId: payment.transactionId,
-        invoiceNumber: link.invoice.invoiceNumber,
-      },
+      changes: { provider, amount: payment.amount, transactionId: payment.transactionId, invoiceNumber: link.invoice.invoiceNumber },
     })
   }
 

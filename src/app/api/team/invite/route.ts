@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
   const baseUrl = process.env.NEXTAUTH_URL ?? `https://${req.headers.get('host')}`
   const inviteUrl = `${baseUrl}/invite/${token}`
 
+  let emailWarning: string | undefined
   try {
     await sendInvitationEmail({
       toEmail: email,
@@ -58,12 +59,12 @@ export async function POST(req: NextRequest) {
     })
   } catch (e) {
     console.error('[team/invite] email failed:', e)
-    // Don't fail — invitation is still created, URL can be shared manually
+    emailWarning = 'שליחת המייל נכשלה. שתף את קישור ההזמנה ידנית.'
   }
 
   await audit(business.id, userId, 'team.invite', {
     changes: { email, role }, ...auditMeta(req),
   })
 
-  return NextResponse.json({ ok: true, inviteUrl, email, role })
+  return NextResponse.json({ ok: true, inviteUrl, email, role, warning: emailWarning })
 }

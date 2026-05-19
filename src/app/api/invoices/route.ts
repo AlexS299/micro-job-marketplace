@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
     const clientId = searchParams.get('clientId')
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const page = parseInt(searchParams.get('page') || '1')
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50') || 50, 200)
+    const page = Math.max(parseInt(searchParams.get('page') || '1') || 1, 1)
 
     const { business, error } = await getAuthBusiness()
     if (error) return error
@@ -62,6 +62,12 @@ export async function POST(req: NextRequest) {
     const limitError = await checkInvoiceLimit(business.id)
     if (limitError) return limitError
 
+    // Validate clientId belongs to this business (prevent cross-tenant link)
+    if (clientId) {
+      const clientOwner = await db.client.findFirst({ where: { id: clientId, businessId: business.id }, select: { id: true } })
+      if (!clientOwner) return NextResponse.json({ error: 'לקוח לא נמצא' }, { status: 404 })
+    }
+
     // Resolve or create client
     let resolvedClientId = clientId
     if (!resolvedClientId && clientName) {
@@ -100,10 +106,15 @@ export async function POST(req: NextRequest) {
     const vatAmount = Math.round(subtotal * VAT_RATE * 100) / 100
     const total = subtotal + vatAmount
 
-    // Generate invoice number
+    // Generate invoice number — use last existing number to avoid collisions on delete+recreate
     const year = new Date().getFullYear()
-    const count = await db.invoice.count({ where: { businessId: business.id } })
-    const invoiceNumber = generateInvoiceNumber(year, count + 1)
+    const lastInvoice = await db.invoice.findFirst({
+      where: { businessId: business.id, invoiceNumber: { startsWith: `${year}-` } },
+      orderBy: { invoiceNumber: 'desc' },
+      select: { invoiceNumber: true },
+    })
+    const lastSeq = lastInvoice ? parseInt(lastInvoice.invoiceNumber.split('-')[1] ?? '0') : 0
+    const invoiceNumber = generateInvoiceNumber(year, lastSeq + 1)
 
     const invoice = await db.invoice.create({
       data: {

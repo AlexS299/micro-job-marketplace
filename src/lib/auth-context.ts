@@ -4,8 +4,18 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { NextResponse } from 'next/server'
 import db from '@/lib/db'
 
+export type AuthBusiness = {
+  id: string; name: string; taxType: string; vatReportPeriod: string
+  whatsappPhone: string | null; stripeCustomerId: string | null
+  vatNumber: string | null; email: string | null; phone: string | null
+  paymentProvider: string | null
+  cardcomTerminal: string | null; cardcomUsername: string | null
+  tranzilaTerminal: string | null; tranzilaApiKey: string | null
+  paymeApiKey: string | null
+}
+
 export type AuthResult =
-  | { business: { id: string; name: string; taxType: string; vatReportPeriod: string; whatsappPhone: string | null; stripeCustomerId: string | null; vatNumber: string | null; email: string | null }; userId: string; role: string; error: null }
+  | { business: AuthBusiness; userId: string; role: string; error: null }
   | { business: null; userId: null; role: null; error: NextResponse }
 
 export async function getAuthBusiness(): Promise<AuthResult> {
@@ -33,7 +43,14 @@ export async function getAuthBusiness(): Promise<AuthResult> {
 async function fetchBusiness(businessId: string, userId: string, role: string): Promise<AuthResult> {
   const business = await db.business.findUnique({
     where: { id: businessId },
-    select: { id: true, name: true, taxType: true, vatReportPeriod: true, whatsappPhone: true, stripeCustomerId: true, vatNumber: true, email: true },
+    select: {
+      id: true, name: true, taxType: true, vatReportPeriod: true,
+      whatsappPhone: true, stripeCustomerId: true, vatNumber: true, email: true, phone: true,
+      paymentProvider: true,
+      cardcomTerminal: true, cardcomUsername: true,
+      tranzilaTerminal: true, tranzilaApiKey: true,
+      paymeApiKey: true,
+    },
   })
   if (!business) {
     return { business: null, userId: null, role: null, error: NextResponse.json({ error: 'Business not found' }, { status: 404 }) }

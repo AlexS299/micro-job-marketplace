@@ -38,6 +38,14 @@ model Business {
   chatMessages      ChatMessage[]
   usageRecords      UsageRecord[]
   businessUsers     BusinessUser[]
+  paymentLinks      PaymentLink[]
+  payments          Payment[]
+  paymentProvider   String?
+  cardcomTerminal   String?
+  cardcomUsername   String?
+  tranzilaTerminal  String?
+  tranzilaApiKey    String?
+  paymeApiKey       String?
 }
 
 model Subscription {
@@ -176,6 +184,47 @@ model Invoice {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   items           InvoiceItem[]
+  paymentLinks    PaymentLink[]
+  payments        Payment[]
+}
+
+model PaymentLink {
+  id            String   @id @default(cuid())
+  token         String   @unique
+  invoiceId     String
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id])
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id])
+  provider      String
+  providerUrl   String
+  amount        Float
+  currency      String   @default("ILS")
+  status        String   @default("PENDING")
+  expiresAt     DateTime
+  paidAt        DateTime?
+  transactionId String?
+  createdAt     DateTime @default(now())
+
+  @@index([token])
+  @@index([invoiceId])
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  invoiceId     String
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id])
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id])
+  provider      String
+  amount        Float
+  currency      String   @default("ILS")
+  transactionId String?
+  status        String
+  rawData       String?
+  createdAt     DateTime @default(now())
+
+  @@index([invoiceId])
+  @@index([businessId])
 }
 
 model InvoiceItem {

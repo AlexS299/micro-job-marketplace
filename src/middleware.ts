@@ -29,8 +29,14 @@ function applyHeaders(res: NextResponse): NextResponse {
   return res
 }
 
-const WEBHOOK_PATHS = ['/api/whatsapp/webhook', '/api/billing/webhook']
-const PUBLIC_PATHS  = ['/login', '/pricing', '/api/auth']
+const WEBHOOK_PATHS = [
+  '/api/whatsapp/webhook',
+  '/api/billing/webhook',
+  '/api/payments/cardcom/webhook',
+  '/api/payments/tranzila/webhook',
+  '/api/payments/payme/webhook',
+]
+const PUBLIC_PATHS  = ['/login', '/pricing', '/api/auth', '/pay/']
 const ADMIN_PATHS   = ['/admin', '/api/admin']
 
 export default withAuth(

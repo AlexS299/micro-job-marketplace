@@ -20,6 +20,7 @@ model Business {
   bankName          String?
   taxType           String             @default("OSEK_MURSHEH")
   vatReportPeriod   String             @default("BIMONTHLY")
+  whatsappPhone     String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   clients           Client[]
@@ -31,6 +32,20 @@ model Business {
   recurringInvoices RecurringInvoice[]
   employees         Employee[]
   payrollRuns       PayrollRun[]
+  whatsappSessions  WhatsAppSession[]
+}
+
+model WhatsAppSession {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id])
+  phone       String
+  context     String?
+  lastMessage DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([businessId, phone])
 }
 
 model Expense {

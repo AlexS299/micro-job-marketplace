@@ -20,6 +20,7 @@ import {
   Landmark,
   TrendingUp,
   Bell,
+  MessageCircle,
 } from 'lucide-react'
 
 const navItems = [
@@ -34,6 +35,7 @@ const navItems = [
   { href: '/dashboard/tax', label: 'מרכז מס', icon: Landmark },
   { href: '/dashboard/financial', label: 'דוחות כספיים', icon: TrendingUp },
   { href: '/dashboard/reports', label: 'מע"מ', icon: BarChart3 },
+  { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: MessageCircle },
   { href: '/dashboard/settings', label: 'הגדרות', icon: Settings },
 ]
 

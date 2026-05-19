@@ -37,3 +37,13 @@ export async function PUT(request: NextRequest) {
   })
   return NextResponse.json(updated)
 }
+
+export async function PATCH(request: NextRequest) {
+  const body = await request.json()
+  const business = await getOrCreateBusiness()
+  const updated = await db.business.update({
+    where: { id: business.id },
+    data: body,
+  })
+  return NextResponse.json(updated)
+}

@@ -1,0 +1,497 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id                String             @id @default(cuid())
+  name              String
+  vatNumber         String?
+  businessNumber    String?
+  address           String?
+  city              String?
+  phone             String?
+  email             String?
+  bankAccount       String?
+  bankName          String?
+  taxType           String             @default("OSEK_MURSHEH")
+  vatReportPeriod   String             @default("BIMONTHLY")
+  whatsappPhone     String?
+  stripeCustomerId  String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  clients           Client[]
+  invoices          Invoice[]
+  bankAccounts      BankAccount[]
+  bankConnections   BankConnection[]
+  vatReports        VATReport[]
+  expenses          Expense[]
+  recurringInvoices RecurringInvoice[]
+  employees         Employee[]
+  payrollRuns       PayrollRun[]
+  whatsappSessions  WhatsAppSession[]
+  subscription      Subscription?
+  chatMessages      ChatMessage[]
+  usageRecords      UsageRecord[]
+  businessUsers     BusinessUser[]
+  invitations       Invitation[]
+  paymentLinks      PaymentLink[]
+  payments          Payment[]
+  quotes            Quote[]
+  paymentProvider   String?
+  cardcomTerminal   String?
+  cardcomUsername   String?
+  tranzilaTerminal  String?
+  tranzilaApiKey    String?
+  paymeApiKey       String?
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  businessId           String    @unique
+  business             Business  @relation(fields: [businessId], references: [id])
+  plan                 String    @default("FREE")
+  status               String    @default("active")
+  stripeSubscriptionId String?   @unique
+  stripePriceId        String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  trialEndsAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model UsageRecord {
+  id           String   @id @default(cuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id])
+  month        Int
+  year         Int
+  invoiceCount Int      @default(0)
+  expenseCount Int      @default(0)
+  employeeCount Int     @default(0)
+  aiCallCount  Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([businessId, month, year])
+}
+
+model BusinessUser {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  role       String   @default("VIEWER")   // ADMIN | EDITOR | VIEWER
+  invitedAt  DateTime @default(now())
+  acceptedAt DateTime?
+
+  @@unique([businessId, userId])
+}
+
+model Invitation {
+  id         String    @id @default(cuid())
+  businessId String
+  business   Business  @relation(fields: [businessId], references: [id])
+  email      String
+  role       String    @default("VIEWER")
+  token      String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([token])
+  @@index([businessId])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  businessId   String
+  userId       String
+  action       String
+  resourceId   String?
+  resourceType String?
+  changes      String?
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+}
+
+model WhatsAppSession {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id])
+  phone       String
+  context     String?
+  lastMessage DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([businessId, phone])
+}
+
+model Expense {
+  id                   String   @id @default(cuid())
+  businessId           String
+  business             Business @relation(fields: [businessId], references: [id])
+  vendor               String?
+  description          String?
+  date                 DateTime
+  subtotal             Float    @default(0)
+  vatAmount            Float    @default(0)
+  total                Float    @default(0)
+  category             String   @default("OTHER")
+  receiptNumber        String?
+  vatDeductible        Boolean  @default(true)
+  vatDeductiblePercent Float    @default(100)
+  documentPath         String?
+  rawExtraction        String?
+  confidence           Float?
+  status               String   @default("PENDING")
+  bankTransactionId    String?
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model Client {
+  id                String             @id @default(cuid())
+  businessId        String
+  business          Business           @relation(fields: [businessId], references: [id])
+  name              String
+  vatNumber         String?
+  idNumber          String?
+  address           String?
+  city              String?
+  email             String?
+  phone             String?
+  notes             String?
+  portalToken       String?            @unique
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  invoices          Invoice[]
+  recurringInvoices RecurringInvoice[]
+  quotes            Quote[]
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  businessId      String
+  business        Business      @relation(fields: [businessId], references: [id])
+  clientId        String?
+  client          Client?       @relation(fields: [clientId], references: [id])
+  invoiceNumber   String        @unique
+  type            String        @default("TAX_INVOICE")
+  status          String        @default("DRAFT")
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime?
+  currency        String        @default("ILS")
+  subtotal        Float         @default(0)
+  vatAmount       Float         @default(0)
+  vatRate         Float         @default(0.18)
+  total           Float         @default(0)
+  notes           String?
+  pdfUrl          String?
+  emailSentAt     DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  items           InvoiceItem[]
+  paymentLinks    PaymentLink[]
+  payments        Payment[]
+}
+
+model PaymentLink {
+  id            String   @id @default(cuid())
+  token         String   @unique
+  invoiceId     String
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id])
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id])
+  provider      String
+  providerUrl   String
+  amount        Float
+  currency      String   @default("ILS")
+  status        String   @default("PENDING")
+  expiresAt     DateTime
+  paidAt        DateTime?
+  transactionId String?
+  createdAt     DateTime @default(now())
+
+  @@index([token])
+  @@index([invoiceId])
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  invoiceId     String
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id])
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id])
+  provider      String
+  amount        Float
+  currency      String   @default("ILS")
+  transactionId String?
+  status        String
+  rawData       String?
+  createdAt     DateTime @default(now())
+
+  @@index([invoiceId])
+  @@index([businessId])
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float    @default(1)
+  unitPrice   Float
+  total       Float
+  vatIncluded Boolean  @default(false)
+}
+
+model Quote {
+  id                   String      @id @default(cuid())
+  businessId           String
+  business             Business    @relation(fields: [businessId], references: [id])
+  clientId             String?
+  client               Client?     @relation(fields: [clientId], references: [id])
+  quoteNumber          String      @unique
+  token                String      @unique
+  status               String      @default("DRAFT")
+  issueDate            DateTime    @default(now())
+  validUntil           DateTime
+  currency             String      @default("ILS")
+  subtotal             Float       @default(0)
+  vatAmount            Float       @default(0)
+  vatRate              Float       @default(0.18)
+  total                Float       @default(0)
+  notes                String?
+  terms                String?
+  sentAt               DateTime?
+  acceptedAt           DateTime?
+  declinedAt           DateTime?
+  convertedToInvoiceId String?
+  items                QuoteItem[]
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  @@index([businessId])
+  @@index([token])
+}
+
+model QuoteItem {
+  id          String  @id @default(cuid())
+  quoteId     String
+  quote       Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Float   @default(1)
+  unitPrice   Float
+  total       Float
+  vatIncluded Boolean @default(false)
+}
+
+model BankConnection {
+  id             String        @id @default(cuid())
+  businessId     String
+  business       Business      @relation(fields: [businessId], references: [id])
+  bankCode       String
+  bankName       String
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  consentId      String?
+  status         String        @default("active")
+  lastSyncAt     DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  accounts       BankAccount[]
+
+  @@unique([businessId, bankCode])
+}
+
+model BankAccount {
+  id            String             @id @default(cuid())
+  businessId    String
+  business      Business           @relation(fields: [businessId], references: [id])
+  connectionId  String?
+  connection    BankConnection?    @relation(fields: [connectionId], references: [id])
+  externalId    String?            @unique
+  bankName      String
+  accountNumber String
+  branchNumber  String?
+  currency      String             @default("ILS")
+  balance       Float              @default(0)
+  lastSyncAt    DateTime?
+  createdAt     DateTime           @default(now())
+  transactions  BankTransaction[]
+}
+
+model BankTransaction {
+  id              String      @id @default(cuid())
+  bankAccountId   String
+  bankAccount     BankAccount @relation(fields: [bankAccountId], references: [id])
+  date            DateTime
+  description     String
+  amount          Float
+  balance         Float?
+  category        String?
+  reference       String?
+  invoiceId       String?
+  isReconciled    Boolean     @default(false)
+  notes           String?
+  createdAt       DateTime    @default(now())
+}
+
+model VATReport {
+  id            String   @id @default(cuid())
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id])
+  periodStart   DateTime
+  periodEnd     DateTime
+  outputVAT     Float
+  inputVAT      Float
+  vatOwed       Float
+  status        String   @default("DRAFT")
+  submittedAt   DateTime?
+  reportData    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ChatMessage {
+  id         String   @id @default(cuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  role       String
+  content    String
+  toolUse    String?
+  createdAt  DateTime @default(now())
+
+  @@index([businessId])
+}
+
+model Employee {
+  id                String           @id @default(cuid())
+  businessId        String
+  business          Business         @relation(fields: [businessId], references: [id])
+  firstName         String
+  lastName          String
+  idNumber          String
+  email             String?
+  phone             String?
+  address           String?
+  startDate         DateTime
+  endDate           DateTime?
+  jobTitle          String?
+  employeeType      String           @default("FULL_TIME")
+  grossSalary       Float
+  taxCreditPoints   Float            @default(2.25)
+  bankAccount       String?
+  bankBranch        String?
+  bankName          String?
+  includePension    Boolean          @default(true)
+  pensionFund       String?
+  includeKeren      Boolean          @default(false)
+  isActive          Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  payrolls          EmployeePayroll[]
+}
+
+model PayrollRun {
+  id                 String           @id @default(cuid())
+  businessId         String
+  business           Business         @relation(fields: [businessId], references: [id])
+  month              Int
+  year               Int
+  status             String           @default("DRAFT")
+  totalGross         Float            @default(0)
+  totalNet           Float            @default(0)
+  totalTax           Float            @default(0)
+  totalNI            Float            @default(0)
+  totalEmployerCost  Float            @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  employees          EmployeePayroll[]
+}
+
+model EmployeePayroll {
+  id                 String      @id @default(cuid())
+  payrollRunId       String
+  payrollRun         PayrollRun  @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  employeeId         String
+  employee           Employee    @relation(fields: [employeeId], references: [id])
+  grossSalary        Float
+  bonus              Float       @default(0)
+  incomeTax          Float       @default(0)
+  nationalInsEmp     Float       @default(0)
+  healthTaxEmp       Float       @default(0)
+  pensionEmp         Float       @default(0)
+  kerenEmp           Float       @default(0)
+  totalDeductions    Float       @default(0)
+  netSalary          Float       @default(0)
+  nationalInsEmployer Float      @default(0)
+  pensionEmployer    Float       @default(0)
+  severanceEmployer  Float       @default(0)
+  kerenEmployer      Float       @default(0)
+  totalEmployerCost  Float       @default(0)
+  workDays           Int         @default(22)
+  vacationDays       Float       @default(0)
+  sickDays           Float       @default(0)
+  notes              String?
+  createdAt          DateTime    @default(now())
+}
+
+model User {
+  id             String         @id @default(cuid())
+  email          String         @unique
+  password       String?
+  name           String?
+  businessId     String?
+  role           String         @default("USER")
+  googleId       String?        @unique
+  image          String?
+  locale         String         @default("he")
+  onboardingDone Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  businessUsers  BusinessUser[]
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([email])
+}
+
+model RecurringInvoice {
+  id            String    @id @default(cuid())
+  businessId    String
+  business      Business  @relation(fields: [businessId], references: [id])
+  clientId      String?
+  client        Client?   @relation(fields: [clientId], references: [id])
+  description   String
+  items         String
+  frequency     String    @default("MONTHLY")
+  dayOfMonth    Int       @default(1)
+  nextRunDate   DateTime
+  isActive      Boolean   @default(true)
+  lastRunAt     DateTime?
+  emailReminder Boolean   @default(true)
+  reminderDays  Int       @default(7)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
